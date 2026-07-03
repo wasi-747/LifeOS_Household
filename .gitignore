@@ -1,0 +1,24 @@
+# Dependency directories
+node_modules/
+venv/
+.venv/
+env/
+__pycache__/
+*.pyc
+
+# Environment files (contains MongoDB Atlas credentials)
+.env
+.env.local
+.env.*.local
+*.env
+
+# Build outputs
+dist/
+build/
+.system_generated/
+
+# OS/IDE configs
+.DS_Store
+.vscode/
+.idea/
+Thumbs.db
