@@ -305,6 +305,29 @@ export default function Dashboard() {
   // Tour states & utility
   const [tourStarted, setTourStarted] = useState<boolean>(false);
 
+  const moveTourNextWhenReady = useCallback(
+    (selector: string, driverInstance: any) => {
+      const tryAdvance = (attempt: number) => {
+        if (document.querySelector(selector)) {
+          setTimeout(() => {
+            driverInstance.moveNext();
+          }, 150);
+          return;
+        }
+
+        if (attempt >= 30) {
+          driverInstance.moveNext();
+          return;
+        }
+
+        setTimeout(() => tryAdvance(attempt + 1), 100);
+      };
+
+      tryAdvance(0);
+    },
+    [],
+  );
+
   const startTour = useCallback(() => {
     const stepsConfig = [
       {
@@ -348,9 +371,7 @@ export default function Dashboard() {
         },
         onNextClick: (_element: any, _step: any, { driver }: any) => {
           setActiveTab("tracker");
-          setTimeout(() => {
-            driver.moveNext();
-          }, 200);
+          moveTourNextWhenReady("#meals-tabs-container", driver);
         },
       },
       {
@@ -370,9 +391,7 @@ export default function Dashboard() {
         },
         onNextClick: (_element: any, _step: any, { driver }: any) => {
           setTrackerSubTab("wallet");
-          setTimeout(() => {
-            driver.moveNext();
-          }, 200);
+          moveTourNextWhenReady("#cash-transfer-form", driver);
         },
       },
       {
@@ -392,9 +411,7 @@ export default function Dashboard() {
         },
         onNextClick: (_element: any, _step: any, { driver }: any) => {
           setActiveTab("notepad");
-          setTimeout(() => {
-            driver.moveNext();
-          }, 200);
+          moveTourNextWhenReady("#create-note-form", driver);
         },
       },
       {
@@ -415,9 +432,7 @@ export default function Dashboard() {
         },
         onNextClick: (_element: any, _step: any, { driver }: any) => {
           setActiveTab("hardware");
-          setTimeout(() => {
-            driver.moveNext();
-          }, 200);
+          moveTourNextWhenReady("#device-desk-container", driver);
         },
       },
       {
@@ -437,9 +452,7 @@ export default function Dashboard() {
         },
         onNextClick: (_element: any, _step: any, { driver }: any) => {
           setActiveTab("dashboard");
-          setTimeout(() => {
-            driver.moveNext();
-          }, 200);
+          moveTourNextWhenReady("#top-bar-controls", driver);
         },
       },
       {
