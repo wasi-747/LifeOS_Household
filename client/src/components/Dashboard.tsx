@@ -1480,7 +1480,7 @@ export default function Dashboard() {
               </div>
             </div>
           )}
-          {activeTab === 'hardware-disabled' && (
+          {(activeTab as any) === 'hardware-disabled' && (
             <div className="space-y-8">
               {/* Heading and Device Selector */}
               <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
