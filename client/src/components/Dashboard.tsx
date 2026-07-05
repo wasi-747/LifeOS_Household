@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
+import { flushSync } from "react-dom";
 import {
   Home,
   Utensils,
@@ -370,7 +371,9 @@ export default function Dashboard() {
           align: "start" as const,
         },
         onNextClick: (_element: any, _step: any, { driver }: any) => {
-          setActiveTab("tracker");
+          flushSync(() => {
+            setActiveTab("tracker");
+          });
           moveTourNextWhenReady("#meals-tabs-container", driver);
         },
       },
@@ -384,13 +387,17 @@ export default function Dashboard() {
           align: "start" as const,
         },
         onPrevClick: (_element: any, _step: any, { driver }: any) => {
-          setActiveTab("dashboard");
+          flushSync(() => {
+            setActiveTab("dashboard");
+          });
           setTimeout(() => {
             driver.movePrevious();
           }, 200);
         },
         onNextClick: (_element: any, _step: any, { driver }: any) => {
-          setTrackerSubTab("wallet");
+          flushSync(() => {
+            setTrackerSubTab("wallet");
+          });
           moveTourNextWhenReady("#cash-transfer-form", driver);
         },
       },
@@ -404,13 +411,17 @@ export default function Dashboard() {
           align: "start" as const,
         },
         onPrevClick: (_element: any, _step: any, { driver }: any) => {
-          setTrackerSubTab("meals");
+          flushSync(() => {
+            setTrackerSubTab("meals");
+          });
           setTimeout(() => {
             driver.movePrevious();
           }, 200);
         },
         onNextClick: (_element: any, _step: any, { driver }: any) => {
-          setActiveTab("notepad");
+          flushSync(() => {
+            setActiveTab("notepad");
+          });
           moveTourNextWhenReady("#create-note-form", driver);
         },
       },
@@ -424,14 +435,18 @@ export default function Dashboard() {
           align: "start" as const,
         },
         onPrevClick: (_element: any, _step: any, { driver }: any) => {
-          setActiveTab("tracker");
-          setTrackerSubTab("wallet");
+          flushSync(() => {
+            setActiveTab("tracker");
+            setTrackerSubTab("wallet");
+          });
           setTimeout(() => {
             driver.movePrevious();
           }, 200);
         },
         onNextClick: (_element: any, _step: any, { driver }: any) => {
-          setActiveTab("hardware");
+          flushSync(() => {
+            setActiveTab("hardware");
+          });
           moveTourNextWhenReady("#device-desk-container", driver);
         },
       },
@@ -445,13 +460,17 @@ export default function Dashboard() {
           align: "start" as const,
         },
         onPrevClick: (_element: any, _step: any, { driver }: any) => {
-          setActiveTab("notepad");
+          flushSync(() => {
+            setActiveTab("notepad");
+          });
           setTimeout(() => {
             driver.movePrevious();
           }, 200);
         },
         onNextClick: (_element: any, _step: any, { driver }: any) => {
-          setActiveTab("dashboard");
+          flushSync(() => {
+            setActiveTab("dashboard");
+          });
           moveTourNextWhenReady("#top-bar-controls", driver);
         },
       },
