@@ -1,4 +1,5 @@
 const DeviceTelemetry = require('../models/DeviceTelemetry');
+const User = require('../models/User');
 
 exports.saveTelemetry = async (req, res) => {
   try {
@@ -8,15 +9,29 @@ exports.saveTelemetry = async (req, res) => {
       cpu_usage_avg,
       ram_usage_avg,
       uptime_seconds,
-      activity_breakdown
+      activity_breakdown,
+      username // Option to send user nickname from python agent to link it
     } = req.body;
 
     if (!device_id) {
       return res.status(400).json({ error: 'device_id is required' });
     }
 
+    let ownerId = null;
+    let homeId = null;
+
+    if (username) {
+      const user = await User.findOne({ nickname: username.toLowerCase() });
+      if (user) {
+        ownerId = user._id;
+        homeId = user.homeId;
+      }
+    }
+
     const telemetryRecord = new DeviceTelemetry({
       deviceId: device_id,
+      ownerId,
+      homeId,
       timestamp: timestamp ? new Date(timestamp) : new Date(),
       cpuUsage: cpu_usage_avg || 0,
       ramUsage: ram_usage_avg || 0,
@@ -43,12 +58,16 @@ exports.saveTelemetry = async (req, res) => {
 exports.getTelemetryByDevice = async (req, res) => {
   try {
     const { deviceId } = req.params;
+    const homeId = req.user.homeId;
 
     if (!deviceId) {
       return res.status(400).json({ error: 'deviceId is required' });
     }
+    if (!homeId) {
+      return res.status(200).json([]);
+    }
 
-    const logs = await DeviceTelemetry.find({ deviceId })
+    const logs = await DeviceTelemetry.find({ deviceId, homeId })
       .sort({ timestamp: -1 })
       .limit(50);
 
@@ -61,7 +80,12 @@ exports.getTelemetryByDevice = async (req, res) => {
 
 exports.getDevices = async (req, res) => {
   try {
-    const telemetries = await DeviceTelemetry.find({})
+    const homeId = req.user.homeId;
+    if (!homeId) {
+      return res.status(200).json([]);
+    }
+
+    const telemetries = await DeviceTelemetry.find({ homeId })
       .populate('ownerId', 'name email role')
       .select('deviceId ownerId')
       .lean();

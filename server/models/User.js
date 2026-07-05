@@ -3,18 +3,36 @@ const mongoose = require('mongoose');
 const UserSchema = new mongoose.Schema({
   name: {
     type: String,
-    required: true
+    required: true,
+    trim: true
+  },
+  nickname: {
+    type: String,
+    required: true,
+    unique: true,
+    lowercase: true,
+    trim: true
   },
   email: {
-    type: String
+    type: String,
+    required: true,
+    unique: true,
+    lowercase: true,
+    trim: true
+  },
+  password: {
+    type: String,
+    required: true
   },
   role: {
     type: String,
+    enum: ['admin', 'member'],
     default: 'member'
   },
-  currentBalance: {
-    type: Number,
-    default: 0
+  homeId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Home',
+    default: null
   }
 }, {
   timestamps: true

@@ -7,6 +7,11 @@ const DailyMealSchema = new mongoose.Schema({
   monthId: {
     type: String // e.g. 'July-2026'
   },
+  homeId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Home',
+    required: true
+  },
   guestMeals: {
     type: Number,
     default: 0
@@ -21,7 +26,12 @@ const DailyMealSchema = new mongoose.Schema({
         type: Number
       }
     }
-  ]
+  ],
+  bazarUser: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    default: null
+  }
 }, {
   timestamps: true
 });

@@ -7,6 +7,11 @@ const TransactionSchema = new mongoose.Schema({
   monthId: {
     type: String
   },
+  homeId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Home',
+    required: true
+  },
   type: {
     type: String,
     enum: ['BAZAR', 'UTILITY', 'RENT', 'DEPOSIT']
@@ -23,7 +28,7 @@ const TransactionSchema = new mongoose.Schema({
   },
   splitType: {
     type: String,
-    enum: ['EQUAL', 'CUSTOM', 'MEAL_RATE', 'INDIVIDUAL', 'TELEMETRY_BASED']
+    enum: ['EQUAL', 'CUSTOM', 'MEAL_RATE', 'INDIVIDUAL']
   },
   splitAmong: [
     {
@@ -35,7 +40,11 @@ const TransactionSchema = new mongoose.Schema({
         type: Number
       }
     }
-  ]
+  ],
+  note: {
+    type: String,
+    default: ''
+  }
 }, {
   timestamps: true
 });

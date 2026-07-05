@@ -1,1 +1,174 @@
 @import "tailwindcss";
+
+:root {
+  /* Default Theme: Deep Cozy Dark Mode */
+  --bg-main: #1C1512; /* Deep warm brown/charcoal */
+  --bg-card: #251B17; /* Warm dark brown */
+  --bg-card-hover: #2E221E;
+  --border-cozy: #382923;
+  --border-focus: #523D35;
+  
+  --text-primary: #FAF6F0; /* Cream */
+  --text-secondary: #D9CEC1; /* Muted cream */
+  --text-tertiary: #A69788;
+  --text-faint: #78695C;
+  
+  --accent-terracotta: #E38D73; /* Warm amber/terracotta */
+  --accent-terracotta-hover: #F2A38A;
+  --accent-sage: #A0B095;
+  --accent-mustard: #EBC161;
+  --accent-mustard-hover: #F2CF7E;
+  
+  --shadow-cozy: 0 8px 30px rgba(0, 0, 0, 0.45);
+  --shadow-card: 0 4px 16px rgba(0, 0, 0, 0.35);
+}
+
+@theme {
+  /* Slate mappings to propagate warm neutrals automatically */
+  --color-slate-950: var(--bg-main);
+  --color-slate-900: var(--bg-card);
+  --color-slate-850: var(--bg-card-hover);
+  --color-slate-800: var(--border-cozy);
+  --color-slate-700: var(--border-focus);
+  --color-slate-600: var(--text-faint);
+  --color-slate-500: var(--text-tertiary);
+  --color-slate-400: var(--text-secondary);
+  --color-slate-300: var(--text-secondary);
+  --color-slate-200: var(--text-primary);
+  --color-slate-100: var(--text-primary);
+  
+  /* Indigo mappings to terracotta */
+  --color-indigo-600: var(--accent-terracotta);
+  --color-indigo-500: var(--accent-terracotta);
+  --color-indigo-400: var(--accent-terracotta);
+  --color-indigo-650: var(--accent-terracotta-hover);
+  --color-indigo-750: var(--accent-terracotta-hover);
+  
+  /* Amber mappings to mustard/honey */
+  --color-amber-500: var(--accent-mustard);
+  --color-amber-400: var(--accent-mustard-hover);
+  --color-amber-550: var(--accent-mustard-hover);
+  
+  /* Emerald mappings to sage */
+  --color-emerald-500: var(--accent-sage);
+  --color-emerald-450: var(--accent-sage);
+  --color-emerald-400: var(--accent-sage);
+
+  /* Soft warm brick/coral alert colors instead of bright red */
+  --color-rose-600: #B3523E;
+  --color-rose-500: #C4634F;
+  --color-rose-450: #C4634F;
+  --color-rose-400: #C4634F;
+  --color-rose-300: #D27B68;
+  
+  /* Custom/Cozy fonts */
+  --font-sans: "Nunito", system-ui, -apple-system, sans-serif;
+  --font-serif: "Fraunces", Georgia, serif;
+  
+  /* Pillowy border-radii */
+  --radius-lg: 14px;
+  --radius-xl: 18px;
+  --radius-2xl: 24px;
+  
+  /* Warm subtle countertop shadows */
+  --shadow-sm: 0 1px 2px 0 rgba(74, 55, 40, 0.03);
+  --shadow-md: var(--shadow-card);
+  --shadow-lg: var(--shadow-card);
+  --shadow-xl: var(--shadow-cozy);
+  --shadow-2xl: 0 25px 50px rgba(74, 55, 40, 0.15);
+}
+
+/* Base style resets and customizations */
+html, body {
+  margin: 0 !important;
+  padding: 0 !important;
+  background-color: var(--bg-main) !important;
+}
+
+body {
+  font-family: var(--font-sans);
+  color: var(--text-primary);
+  line-height: 1.6;
+  letter-spacing: 0.015em;
+  position: relative;
+  min-height: 100vh;
+}
+
+/* Cozy paper texture overlay */
+body::after {
+  content: "";
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  opacity: 0.035;
+  pointer-events: none;
+  z-index: 9999;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+}
+
+/* Serif headers */
+h1, h2, h3, h4, .font-serif {
+  font-family: var(--font-serif) !important;
+  font-weight: 700;
+}
+
+/* Table alternate row backgrounds & hovers */
+tbody tr:nth-child(even) {
+  background-color: rgba(46, 34, 30, 0.45) !important;
+}
+tbody tr {
+  background-color: var(--bg-card);
+  transition: background-color 150ms ease;
+}
+tbody tr:hover {
+  background-color: rgba(56, 42, 37, 0.8) !important;
+}
+
+/* Recharts styling overrides to make them warm, cozy and readable */
+.recharts-cartesian-grid-horizontal line,
+.recharts-cartesian-grid-vertical line {
+  stroke: var(--border-cozy) !important;
+  opacity: 0.7;
+}
+
+.recharts-text {
+  fill: var(--text-secondary) !important;
+  font-family: var(--font-sans) !important;
+}
+
+.recharts-legend-item-text {
+  color: var(--text-primary) !important;
+  font-family: var(--font-sans) !important;
+  font-size: 11px !important;
+}
+
+.recharts-default-tooltip {
+  background-color: var(--bg-card) !important;
+  border: 1px solid var(--border-cozy) !important;
+  border-radius: 12px !important;
+  box-shadow: var(--shadow-card) !important;
+  font-family: var(--font-sans) !important;
+}
+
+.recharts-tooltip-label {
+  color: var(--text-primary) !important;
+  font-weight: 700 !important;
+}
+
+/* Soft scrollbar design */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: var(--bg-main);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--border-cozy);
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--border-focus);
+}
