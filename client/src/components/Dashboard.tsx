@@ -453,14 +453,14 @@ export default function Dashboard() {
   }, [currentUser]);
 
   useEffect(() => {
-    if (currentUser?.homeId && currentUser.hasCompletedTour === false && summaryData && !tourStarted) {
+    if (currentUser?.homeId && currentUser.hasCompletedTour === false && !tourStarted) {
       setTourStarted(true);
       const timer = setTimeout(() => {
         startTour();
-      }, 1200);
+      }, 2500);
       return () => clearTimeout(timer);
     }
-  }, [currentUser, summaryData, tourStarted, startTour]);
+  }, [currentUser, tourStarted, startTour]);
 
   // Search input state
   const [searchText, setSearchText] = useState<string>('');
@@ -728,6 +728,15 @@ export default function Dashboard() {
     localStorage.removeItem('lifeos-token');
     setToken(null);
     setCurrentUser(null);
+    // Reset all dashboard state so stale data doesn't persist across accounts
+    setHomeData(null);
+    setHomeName('Sweet Home');
+    setSummaryData(null);
+    setTrackerData(null);
+    setBillConfig(null);
+    setTourStarted(false);
+    setActiveTab('dashboard');
+    setTrackerSubTab('meals');
   };
 
   const handleInviteRoommate = async (e: React.FormEvent) => {
@@ -1326,6 +1335,16 @@ export default function Dashboard() {
       <HomeOnboarding
         user={currentUser}
         onHomeCreated={(hId) => {
+          // Reset stale state from any previous home session
+          setHomeData(null);
+          setHomeName('Sweet Home');
+          setSummaryData(null);
+          setTrackerData(null);
+          setBillConfig(null);
+          setTourStarted(false);
+          setActiveTab('dashboard');
+          setTrackerSubTab('meals');
+          // Set the new homeId to transition to the dashboard
           setCurrentUser(prev => prev ? { ...prev, homeId: hId } : null);
           fetchHomeDetails();
         }}
