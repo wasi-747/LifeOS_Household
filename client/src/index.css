@@ -172,3 +172,98 @@ tbody tr:hover {
 ::-webkit-scrollbar-thumb:hover {
   background: var(--border-focus);
 }
+
+/* Cozy Onboarding Tour Popover Styles */
+.driver-popover.cozy-tour-popover {
+  background-color: #FAF6EE !important;
+  color: #3C2F2F !important;
+  border-radius: 16px !important;
+  border: 1px solid #EAE0D5 !important;
+  box-shadow: 0 10px 30px rgba(60, 47, 47, 0.15) !important;
+  padding: 18px !important;
+  font-family: "Nunito", system-ui, -apple-system, sans-serif !important;
+  max-width: 320px !important;
+}
+
+.driver-popover.cozy-tour-popover .driver-popover-title {
+  color: #2C1E1A !important;
+  font-family: "Fraunces", Georgia, serif !important;
+  font-weight: 800 !important;
+  font-size: 16px !important;
+  line-height: 1.3 !important;
+  margin-bottom: 6px !important;
+}
+
+.driver-popover.cozy-tour-popover .driver-popover-description {
+  color: #5C4F4F !important;
+  font-size: 12px !important;
+  line-height: 1.5 !important;
+  margin-bottom: 12px !important;
+}
+
+/* Style Buttons */
+.driver-popover.cozy-tour-popover .driver-popover-btn {
+  border-radius: 8px !important;
+  font-size: 11px !important;
+  font-weight: 700 !important;
+  padding: 6px 14px !important;
+  cursor: pointer !important;
+  text-shadow: none !important;
+  box-shadow: none !important;
+  transition: all 0.2s ease !important;
+}
+
+/* Next / Done Button */
+.driver-popover.cozy-tour-popover .driver-popover-next-btn {
+  background-color: #D95D39 !important;
+  color: #ffffff !important;
+  border: none !important;
+}
+.driver-popover.cozy-tour-popover .driver-popover-next-btn:hover {
+  background-color: #B34424 !important;
+}
+
+/* Previous/Back Button */
+.driver-popover.cozy-tour-popover .driver-popover-prev-btn {
+  background-color: transparent !important;
+  color: #D95D39 !important;
+  border: 1px solid #E3A390 !important;
+}
+.driver-popover.cozy-tour-popover .driver-popover-prev-btn:hover {
+  background-color: rgba(217, 93, 57, 0.05) !important;
+}
+
+/* Skip/Close Button */
+.driver-popover.cozy-tour-popover .driver-popover-close-btn {
+  color: #8C7F7F !important;
+  background-color: transparent !important;
+  border: none !important;
+}
+.driver-popover.cozy-tour-popover .driver-popover-close-btn:hover {
+  color: #3C2F2F !important;
+}
+
+/* Progress counter indicator */
+.driver-popover.cozy-tour-popover .driver-popover-progress-text {
+  color: #8C7F7F !important;
+  font-size: 11px !important;
+  font-weight: 700 !important;
+}
+
+/* Arrow color overrides */
+.driver-popover.cozy-tour-popover .driver-popover-arrow {
+  border-color: #FAF6EE !important;
+}
+.driver-popover.cozy-tour-popover .driver-popover-arrow-side-left {
+  border-left-color: #FAF6EE !important;
+}
+.driver-popover.cozy-tour-popover .driver-popover-arrow-side-right {
+  border-right-color: #FAF6EE !important;
+}
+.driver-popover.cozy-tour-popover .driver-popover-arrow-side-top {
+  border-top-color: #FAF6EE !important;
+}
+.driver-popover.cozy-tour-popover .driver-popover-arrow-side-bottom {
+  border-bottom-color: #FAF6EE !important;
+}
+

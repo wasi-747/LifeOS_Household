@@ -33,6 +33,10 @@ const UserSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Home',
     default: null
+  },
+  hasCompletedTour: {
+    type: Boolean,
+    default: false
   }
 }, {
   timestamps: true

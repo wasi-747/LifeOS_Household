@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import {
   Home,
   Utensils,
@@ -18,8 +18,11 @@ import {
   Pin,
   History,
   Plus,
-  MessageSquare
+  MessageSquare,
+  HelpCircle
 } from 'lucide-react';
+import { driver } from 'driver.js';
+import 'driver.js/dist/driver.css';
 import api from '../services/api';
 import Auth from './Auth';
 import HomeOnboarding from './HomeOnboarding';
@@ -255,7 +258,7 @@ export default function Dashboard() {
 
   // Session Authentication & Onboarding states
   const [token, setToken] = useState<string | null>(() => localStorage.getItem('lifeos-token'));
-  const [currentUser, setCurrentUser] = useState<{ _id: string; name: string; nickname: string; email: string; homeId: string | null; role: string } | null>(null);
+  const [currentUser, setCurrentUser] = useState<{ _id: string; name: string; nickname: string; email: string; homeId: string | null; role: string; hasCompletedTour?: boolean } | null>(null);
   const [authLoading, setAuthLoading] = useState<boolean>(true);
 
   // Dynamic Home details
@@ -279,6 +282,185 @@ export default function Dashboard() {
       fetchHomeDetails();
     }
   }, [currentUser]);
+
+  // Tour states & utility
+  const [tourStarted, setTourStarted] = useState<boolean>(false);
+
+  const startTour = useCallback(() => {
+    const stepsConfig = [
+      {
+        element: '#dashboard-greeting',
+        popover: {
+          title: 'Welcome to LifeOS! 👋',
+          description: 'This is your main dashboard. You can see personalized greetings, announcements, and quick status metrics here.',
+          side: 'bottom' as const,
+          align: 'start' as const
+        }
+      },
+      {
+        element: '#dashboard-stats',
+        popover: {
+          title: 'Monthly Summary Stats 📈',
+          description: 'Quickly monitor total meal costs, active shared meal counts, and this month\'s calculated meal rate.',
+          side: 'bottom' as const,
+          align: 'start' as const
+        }
+      },
+      {
+        element: '#roommate-standing',
+        popover: {
+          title: 'Roommate Standings Ledger 👥',
+          description: 'A real-time overview of who cooked, who spent on bazar, and what final dues are owed by/to each roommate.',
+          side: 'top' as const,
+          align: 'start' as const
+        }
+      },
+      {
+        element: '#sidebar-nav',
+        popover: {
+          title: 'Cozy Sidebar Navigation 🧭',
+          description: 'Switch between pages such as Kitchen & Meals, Device Desk, House Notes, and the transaction history log.',
+          side: 'right' as const,
+          align: 'start' as const
+        },
+        onNextClick: (_element: any, _step: any, { driver }: any) => {
+          setActiveTab('tracker');
+          setTimeout(() => {
+            driver.moveNext();
+          }, 200);
+        }
+      },
+      {
+        element: '#meals-tabs-container',
+        popover: {
+          title: 'Kitchen & Meal Tracker 🍳',
+          description: 'Record roommate meal servings, log shared grocery bazar costs, add deposits, and manage roommate sub-wallets.',
+          side: 'bottom' as const,
+          align: 'start' as const
+        },
+        onPrevClick: (_element: any, _step: any, { driver }: any) => {
+          setActiveTab('dashboard');
+          setTimeout(() => {
+            driver.movePrevious();
+          }, 200);
+        },
+        onNextClick: (_element: any, _step: any, { driver }: any) => {
+          setTrackerSubTab('wallet');
+          setTimeout(() => {
+            driver.moveNext();
+          }, 200);
+        }
+      },
+      {
+        element: '#cash-transfer-form',
+        popover: {
+          title: 'Record Cash Transfer 💸',
+          description: 'Instantly transfer meal balances or grocery cash directly between roommate sub-wallets.',
+          side: 'top' as const,
+          align: 'start' as const
+        },
+        onPrevClick: (_element: any, _step: any, { driver }: any) => {
+          setTrackerSubTab('meals');
+          setTimeout(() => {
+            driver.movePrevious();
+          }, 200);
+        },
+        onNextClick: (_element: any, _step: any, { driver }: any) => {
+          setActiveTab('notepad');
+          setTimeout(() => {
+            driver.moveNext();
+          }, 200);
+        }
+      },
+      {
+        element: '#create-note-form',
+        popover: {
+          title: 'Cozy Notepad & Purchases 📝',
+          description: 'Create shared shopping items, todo check-lists, general memos, or deadlined reminders.',
+          side: 'bottom' as const,
+          align: 'start' as const
+        },
+        onPrevClick: (_element: any, _step: any, { driver }: any) => {
+          setActiveTab('tracker');
+          setTrackerSubTab('wallet');
+          setTimeout(() => {
+            driver.movePrevious();
+          }, 200);
+        },
+        onNextClick: (_element: any, _step: any, { driver }: any) => {
+          setActiveTab('hardware');
+          setTimeout(() => {
+            driver.moveNext();
+          }, 200);
+        }
+      },
+      {
+        element: '#device-desk-container',
+        popover: {
+          title: 'Device Desk 💻',
+          description: 'Monitor active system health, network telemetry logging, and shared computer units in the household.',
+          side: 'bottom' as const,
+          align: 'start' as const
+        },
+        onPrevClick: (_element: any, _step: any, { driver }: any) => {
+          setActiveTab('notepad');
+          setTimeout(() => {
+            driver.movePrevious();
+          }, 200);
+        },
+        onNextClick: (_element: any, _step: any, { driver }: any) => {
+          setActiveTab('dashboard');
+          setTimeout(() => {
+            driver.moveNext();
+          }, 200);
+        }
+      },
+      {
+        element: '#top-bar-controls',
+        popover: {
+          title: 'Top Bar Utilities 🛠️',
+          description: 'Easily select months, configure roommate bill splits, and check the custom notifications bell.',
+          side: 'bottom' as const,
+          align: 'end' as const
+        },
+        onPrevClick: (_element: any, _step: any, { driver }: any) => {
+          setActiveTab('hardware');
+          setTimeout(() => {
+            driver.movePrevious();
+          }, 200);
+        }
+      }
+    ];
+
+    const d = driver({
+      showProgress: true,
+      popoverClass: 'cozy-tour-popover',
+      allowClose: true,
+      steps: stepsConfig,
+      onDestroyed: async () => {
+        if (currentUser && !currentUser.hasCompletedTour) {
+          try {
+            await api.put('/auth/completed-tour');
+            setCurrentUser(prev => prev ? { ...prev, hasCompletedTour: true } : null);
+          } catch (err) {
+            console.error('Failed to save tour completion:', err);
+          }
+        }
+      }
+    });
+
+    d.drive();
+  }, [currentUser]);
+
+  useEffect(() => {
+    if (currentUser?.homeId && currentUser.hasCompletedTour === false && summaryData && !tourStarted) {
+      setTourStarted(true);
+      const timer = setTimeout(() => {
+        startTour();
+      }, 1200);
+      return () => clearTimeout(timer);
+    }
+  }, [currentUser, summaryData, tourStarted, startTour]);
 
   // Search input state
   const [searchText, setSearchText] = useState<string>('');
@@ -1169,7 +1351,7 @@ export default function Dashboard() {
           </div>
 
           {/* Navigation */}
-          <nav className="p-4 space-y-1">
+          <nav id="sidebar-nav" className="p-4 space-y-1">
             <button
               onClick={() => setActiveTab('dashboard')}
               className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200 cursor-pointer ${
@@ -1241,6 +1423,13 @@ export default function Dashboard() {
                 <p className="text-xs font-bold text-white truncate mt-1">{currentUser?.name}</p>
                 <p className="text-[9px] text-[#8A9A7E] font-medium mt-0.5 font-mono">@{currentUser?.nickname}</p>
               </div>
+              <button
+                onClick={startTour}
+                title="Replay Onboarding Tour"
+                className="p-1.5 hover:bg-slate-800 rounded-lg text-slate-400 hover:text-indigo-400 transition-all cursor-pointer border-none bg-transparent"
+              >
+                <HelpCircle size={15} />
+              </button>
               <button
                 onClick={handleLogout}
                 title="Logout"
@@ -1336,7 +1525,7 @@ export default function Dashboard() {
             <div className="w-80" />
           )}
 
-          <div className="flex items-center gap-6">
+          <div id="top-bar-controls" className="flex items-center gap-6">
             <div className="flex items-center gap-2 text-slate-300">
               <Home size={16} className="text-indigo-400" />
               <span className="text-xs font-bold text-slate-450 uppercase tracking-widest">{homeName}</span>
@@ -1454,7 +1643,7 @@ export default function Dashboard() {
           
           {/* Hardware & Telemetry View */}
           {activeTab === 'hardware' && (
-            <div className="flex flex-col items-center justify-center min-h-[50vh] animate-fade-in text-center p-8 bg-slate-900/20 border border-slate-800/40 rounded-3xl space-y-6 max-w-2xl mx-auto my-12 backdrop-blur-sm shadow-2xl animate-fade-in">
+            <div id="device-desk-container" className="flex flex-col items-center justify-center min-h-[50vh] animate-fade-in text-center p-8 bg-slate-900/20 border border-slate-800/40 rounded-3xl space-y-6 max-w-2xl mx-auto my-12 backdrop-blur-sm shadow-2xl animate-fade-in">
               <div className="relative">
                 <div className="absolute -inset-1 rounded-full bg-gradient-to-r from-indigo-500 to-emerald-500 opacity-30 blur-lg animate-pulse"></div>
                 <div className="relative flex items-center justify-center w-16 h-16 rounded-full bg-slate-900 border border-slate-700 text-indigo-400">
@@ -1708,7 +1897,7 @@ export default function Dashboard() {
               </div>
 
               {/* Sub-tabs toggles */}
-              <div className="flex gap-4 border-b border-slate-800 pb-px">
+              <div id="meals-tabs-container" className="flex gap-4 border-b border-slate-800 pb-px">
                 <button
                   onClick={() => setTrackerSubTab('meals')}
                   className={`pb-3 font-semibold text-sm transition-all relative cursor-pointer ${
@@ -2151,7 +2340,7 @@ export default function Dashboard() {
                         <div className="bg-slate-950/40 p-6 border border-slate-800 rounded-2xl space-y-4">
                           <h3 className="font-bold text-base text-white">Record Cash Transfer</h3>
                           <p className="text-xs text-slate-400">Log when a roommate takes cash from another to fund a bazar trip.</p>
-                          <form onSubmit={handleAddTransfer} className="space-y-4">
+                          <form id="cash-transfer-form" onSubmit={handleAddTransfer} className="space-y-4">
                             <div>
                               <label className="block text-[10px] uppercase font-bold text-slate-400 mb-1">Taken From (Giver)</label>
                               <select
@@ -2339,13 +2528,13 @@ export default function Dashboard() {
                 {activeTab === 'dashboard' && (
                   <>
                     {/* Heading */}
-                    <div>
+                    <div id="dashboard-greeting">
                       <h2 className="text-2xl font-bold text-white tracking-tight font-serif">{getGreeting()}, {currentUser?.name || 'Roommate'}!</h2>
                       <p className="text-slate-400 text-sm">Welcome home. Here is how the household is doing today.</p>
                     </div>
 
                     {/* Stats Grid */}
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div id="dashboard-stats" className="grid grid-cols-1 md:grid-cols-3 gap-6">
                       <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 relative overflow-hidden">
                         <div className="absolute top-0 right-0 p-3 text-indigo-500/10"><DollarSign size={80} /></div>
                         <span className="text-xs font-semibold text-slate-400 uppercase">Groceries & Bazar Costs</span>
@@ -2384,7 +2573,7 @@ export default function Dashboard() {
                 {/* Ledger Standings Sub-view or visual compare */}
                 <div className="grid grid-cols-1 gap-8">
                   {/* Ledger Table */}
-                  <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl space-y-6">
+                  <div id="roommate-standing" className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl space-y-6">
                     <div>
                       <h3 className="font-bold text-lg text-white">Roommate Standing Statement</h3>
                       <p className="text-xs text-slate-400">Detailed list of calculations used to determine final standings.</p>
@@ -2543,7 +2732,7 @@ export default function Dashboard() {
               </div>
 
               {/* Add Note Form */}
-              <form onSubmit={handleCreateNote} className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl space-y-4">
+              <form id="create-note-form" onSubmit={handleCreateNote} className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl space-y-4">
                 <h3 className="font-bold text-sm text-white">Create a Note / Purchase</h3>
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                   <div className="md:col-span-2">

@@ -22,6 +22,7 @@ router.post('/auth/login', authController.login);
 
 // Protected Auth & Home routes
 router.get('/auth/me', authMiddleware, authController.getMe);
+router.put('/auth/completed-tour', authMiddleware, authController.completeTour);
 router.post('/home/create', authMiddleware, homeController.createHome);
 router.post('/home/invite', authMiddleware, homeController.inviteMember);
 router.get('/home/details', authMiddleware, homeController.getHomeDetails);

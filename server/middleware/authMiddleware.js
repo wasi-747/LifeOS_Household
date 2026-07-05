@@ -30,7 +30,8 @@ module.exports = async (req, res, next) => {
       nickname: user.nickname,
       email: user.email,
       homeId: user.homeId,
-      role: user.role
+      role: user.role,
+      hasCompletedTour: user.hasCompletedTour
     };
 
     next();

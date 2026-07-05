@@ -58,7 +58,8 @@ exports.signup = async (req, res) => {
         nickname: user.nickname,
         email: user.email,
         homeId: user.homeId,
-        role: user.role
+        role: user.role,
+        hasCompletedTour: user.hasCompletedTour
       }
     });
   } catch (error) {
@@ -105,7 +106,8 @@ exports.login = async (req, res) => {
         nickname: user.nickname,
         email: user.email,
         homeId: user.homeId,
-        role: user.role
+        role: user.role,
+        hasCompletedTour: user.hasCompletedTour
       }
     });
   } catch (error) {
@@ -121,5 +123,15 @@ exports.getMe = async (req, res) => {
   } catch (error) {
     console.error('Get me error:', error);
     return res.status(500).json({ error: 'Internal server error fetching account details.' });
+  }
+};
+
+exports.completeTour = async (req, res) => {
+  try {
+    await User.findByIdAndUpdate(req.user._id, { hasCompletedTour: true });
+    return res.status(200).json({ message: 'Tour completion saved successfully.' });
+  } catch (error) {
+    console.error('Complete tour error:', error);
+    return res.status(500).json({ error: 'Internal server error saving tour completion.' });
   }
 };
