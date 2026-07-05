@@ -3,7 +3,7 @@ import { Home, Loader2, KeyRound, User, Mail, ShieldAlert } from 'lucide-react';
 import api from '../services/api';
 
 interface AuthProps {
-  onAuthSuccess: (token: string, user: { _id: string; name: string; nickname: string; email: string; homeId: string | null; role: string }) => void;
+  onAuthSuccess: (token: string, user: { _id: string; name: string; nickname: string; email: string; homeId: string | null; role: string; hasCompletedTour?: boolean }) => void;
 }
 
 export default function Auth({ onAuthSuccess }: AuthProps) {
