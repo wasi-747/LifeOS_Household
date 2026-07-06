@@ -396,10 +396,29 @@ def main():
     
     # Check if already paired
     if not DEVICE_TOKEN:
-        print("\n[SETUP] Device not paired yet.")
-        pairing_code = input("Enter pairing code from your LifeOS account: ").strip()
+        pairing_code = ""
+        try:
+            import tkinter as tk
+            from tkinter import simpledialog
+            
+            root = tk.Tk()
+            root.withdraw()
+            root.attributes("-topmost", True)
+            pairing_code = simpledialog.askstring(
+                "LifeOS Agent Setup",
+                "Enter pairing code from your LifeOS account:"
+            )
+            root.destroy()
+        except Exception:
+            pass
+            
+        if not pairing_code:
+            print("\n[SETUP] Device not paired yet.")
+            pairing_code = input("Enter pairing code from your LifeOS account: ").strip()
+        else:
+            pairing_code = pairing_code.strip()
         
-        if not pair_device(pairing_code):
+        if not pairing_code or not pair_device(pairing_code):
             print("[FATAL] Failed to pair device. Exiting.")
             return
             
@@ -417,19 +436,21 @@ def main():
     batch_thread = threading.Thread(target=batch_sender_loop, daemon=True)
     consent_thread = threading.Thread(target=consent_check_loop, daemon=True)
     pause_thread = threading.Thread(target=check_pause_file, daemon=True)
-    input_thread = threading.Thread(target=handle_user_input, daemon=True)
-    
-    tracking_thread.start()
-    batch_thread.start()
-    consent_thread.start()
-    pause_thread.start()
-    input_thread.start()
-    
-    print_menu()
-    print("[INFO] Tracker started. Press 'm' for menu, 'q' to quit.\n")
-    
-    # Wait for user input thread (main thread)
-    input_thread.join()
+    # Only start input thread if stdout/console is available
+    has_console = sys.stdout is not None
+    if has_console:
+        input_thread = threading.Thread(target=handle_user_input, daemon=True)
+        input_thread.start()
+        print_menu()
+        print("[INFO] Tracker started. Press 'm' for menu, 'q' to quit.\n")
+        input_thread.join()
+    else:
+        # Running windowless in background, wait for shutdown signal
+        try:
+            while is_running:
+                time.sleep(1)
+        except (KeyboardInterrupt, SystemExit):
+            is_running = False
     
     # Cleanup
     is_running = False
