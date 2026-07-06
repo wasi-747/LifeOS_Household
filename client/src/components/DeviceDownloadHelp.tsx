@@ -71,20 +71,20 @@ export default function DeviceDownloadHelp({ onClose }: DeviceDownloadHelpProps)
             <div className="bg-slate-800/50 rounded-xl p-4 border border-slate-700 space-y-3 text-xs">
               <div className="pb-2">
                 <a
-                  href={getDownloadURL("LifeOSAgent.exe")}
-                  download="LifeOSAgent.exe"
+                  href={getDownloadURL("LifeOSAgent-Windows.zip")}
+                  download="LifeOSAgent-Windows.zip"
                   className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-650 hover:bg-indigo-600 text-white font-bold rounded-xl transition-all cursor-pointer shadow-md"
                 >
                   <Download size={14} />
-                  Download LifeOSAgent.exe
+                  Download LifeOSAgent-Windows.zip
                 </a>
               </div>
               <ol className="list-decimal pl-5 space-y-2">
                 <li>
-                  <span className="font-medium text-slate-200">Download the agent:</span> Click the download button above to get the Windows executable.
+                  <span className="font-medium text-slate-200">Download the agent:</span> Click the download button above to get the Windows ZIP archive.
                 </li>
                 <li>
-                  <span className="font-medium text-slate-200">Run the installer:</span> Double-click the downloaded file.
+                  <span className="font-medium text-slate-200">Extract & Run:</span> Extract the ZIP file and double-click the <span className="bg-slate-700 px-1.5 py-0.5 rounded text-white font-mono">LifeOSAgent.exe</span> file.
                 </li>
                 <li>
                   <span className="font-medium text-slate-200">SmartScreen warning:</span> If Windows SmartScreen appears, click <span className="bg-slate-700 px-1.5 py-0.5 rounded text-white font-mono">"More info"</span> then <span className="bg-slate-700 px-1.5 py-0.5 rounded text-white font-mono">"Run anyway"</span>.

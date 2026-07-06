@@ -88,7 +88,9 @@ exports.revokeConsent = async (req, res) => {
       householdId,
     });
 
-    if (!requesterMember || requesterMember.role !== "admin") {
+    const isAdmin = (requesterMember && requesterMember.role === "admin") || req.user.role === "admin";
+
+    if (!isAdmin) {
       return res.status(403).json({
         error: "Only household administrators can revoke device tracking consent. Please contact your household owner.",
       });
