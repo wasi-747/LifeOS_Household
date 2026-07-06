@@ -21,6 +21,7 @@ import {
   Plus,
   MessageSquare,
   HelpCircle,
+  MousePointer2,
 } from "lucide-react";
 import { driver } from "driver.js";
 import "driver.js/dist/driver.css";
@@ -305,6 +306,9 @@ export default function Dashboard() {
 
   // Tour states & utility
   const [tourStarted, setTourStarted] = useState<boolean>(false);
+  const [tourPointerTab, setTourPointerTab] = useState<
+    "dashboard" | "tracker" | "hardware" | "notepad" | "history" | null
+  >(null);
 
   const moveTourNextWhenReady = useCallback(
     (selector: string, driverInstance: any) => {
@@ -360,15 +364,36 @@ export default function Dashboard() {
           side: "top" as const,
           align: "start" as const,
         },
+        onNextClick: (_element: any, _step: any, { driver }: any) => {
+          flushSync(() => {
+            setActiveTab("tracker");
+          });
+          moveTourNextWhenReady("#sidebar-tab-tracker", driver);
+        },
       },
       {
-        element: "#sidebar-nav",
+        element: "#sidebar-tab-tracker",
         popover: {
-          title: "Cozy Sidebar Navigation 🧭",
-          description:
-            "Switch between pages such as Kitchen & Meals, Device Desk, House Notes, and the transaction history log.",
+          title: "Kitchen & Meals",
+          description: "This tab is the next destination in the tour.",
           side: "right" as const,
           align: "start" as const,
+        },
+        onHighlightStarted: () => {
+          setTourPointerTab("tracker");
+        },
+        onDeselected: () => {
+          setTourPointerTab((current) =>
+            current === "tracker" ? null : current,
+          );
+        },
+        onPrevClick: (_element: any, _step: any, { driver }: any) => {
+          flushSync(() => {
+            setActiveTab("dashboard");
+          });
+          setTimeout(() => {
+            driver.movePrevious();
+          }, 200);
         },
         onNextClick: (_element: any, _step: any, { driver }: any) => {
           flushSync(() => {
@@ -388,7 +413,7 @@ export default function Dashboard() {
         },
         onPrevClick: (_element: any, _step: any, { driver }: any) => {
           flushSync(() => {
-            setActiveTab("dashboard");
+            setActiveTab("tracker");
           });
           setTimeout(() => {
             driver.movePrevious();
@@ -396,48 +421,30 @@ export default function Dashboard() {
         },
         onNextClick: (_element: any, _step: any, { driver }: any) => {
           flushSync(() => {
-            setTrackerSubTab("wallet");
+            setActiveTab("hardware");
           });
-          moveTourNextWhenReady("#cash-transfer-form", driver);
+          moveTourNextWhenReady("#sidebar-tab-hardware", driver);
         },
       },
       {
-        element: "#cash-transfer-form",
+        element: "#sidebar-tab-hardware",
         popover: {
-          title: "Record Cash Transfer 💸",
-          description:
-            "Instantly transfer meal balances or grocery cash directly between roommate sub-wallets.",
-          side: "top" as const,
+          title: "Device Desk",
+          description: "This tab is the next destination in the tour.",
+          side: "right" as const,
           align: "start" as const,
         },
-        onPrevClick: (_element: any, _step: any, { driver }: any) => {
-          flushSync(() => {
-            setTrackerSubTab("meals");
-          });
-          setTimeout(() => {
-            driver.movePrevious();
-          }, 200);
+        onHighlightStarted: () => {
+          setTourPointerTab("hardware");
         },
-        onNextClick: (_element: any, _step: any, { driver }: any) => {
-          flushSync(() => {
-            setActiveTab("notepad");
-          });
-          moveTourNextWhenReady("#create-note-form", driver);
-        },
-      },
-      {
-        element: "#create-note-form",
-        popover: {
-          title: "Cozy Notepad & Purchases 📝",
-          description:
-            "Create shared shopping items, todo check-lists, general memos, or deadlined reminders.",
-          side: "bottom" as const,
-          align: "start" as const,
+        onDeselected: () => {
+          setTourPointerTab((current) =>
+            current === "hardware" ? null : current,
+          );
         },
         onPrevClick: (_element: any, _step: any, { driver }: any) => {
           flushSync(() => {
             setActiveTab("tracker");
-            setTrackerSubTab("wallet");
           });
           setTimeout(() => {
             driver.movePrevious();
@@ -461,7 +468,117 @@ export default function Dashboard() {
         },
         onPrevClick: (_element: any, _step: any, { driver }: any) => {
           flushSync(() => {
+            setActiveTab("hardware");
+          });
+          setTimeout(() => {
+            driver.movePrevious();
+          }, 200);
+        },
+        onNextClick: (_element: any, _step: any, { driver }: any) => {
+          flushSync(() => {
             setActiveTab("notepad");
+          });
+          moveTourNextWhenReady("#sidebar-tab-notepad", driver);
+        },
+      },
+      {
+        element: "#sidebar-tab-notepad",
+        popover: {
+          title: "House Notes",
+          description: "This tab is the next destination in the tour.",
+          side: "right" as const,
+          align: "start" as const,
+        },
+        onHighlightStarted: () => {
+          setTourPointerTab("notepad");
+        },
+        onDeselected: () => {
+          setTourPointerTab((current) =>
+            current === "notepad" ? null : current,
+          );
+        },
+        onPrevClick: (_element: any, _step: any, { driver }: any) => {
+          flushSync(() => {
+            setActiveTab("hardware");
+          });
+          setTimeout(() => {
+            driver.movePrevious();
+          }, 200);
+        },
+        onNextClick: (_element: any, _step: any, { driver }: any) => {
+          flushSync(() => {
+            setActiveTab("notepad");
+          });
+          moveTourNextWhenReady("#create-note-form", driver);
+        },
+      },
+      {
+        element: "#create-note-form",
+        popover: {
+          title: "Cozy Notepad & Purchases 📝",
+          description:
+            "Create shared shopping items, todo check-lists, general memos, or deadlined reminders.",
+          side: "bottom" as const,
+          align: "start" as const,
+        },
+        onPrevClick: (_element: any, _step: any, { driver }: any) => {
+          flushSync(() => {
+            setActiveTab("notepad");
+          });
+          setTimeout(() => {
+            driver.movePrevious();
+          }, 200);
+        },
+        onNextClick: (_element: any, _step: any, { driver }: any) => {
+          flushSync(() => {
+            setActiveTab("history");
+          });
+          moveTourNextWhenReady("#sidebar-tab-history", driver);
+        },
+      },
+      {
+        element: "#sidebar-tab-history",
+        popover: {
+          title: "Change History",
+          description: "This tab is the next destination in the tour.",
+          side: "right" as const,
+          align: "start" as const,
+        },
+        onHighlightStarted: () => {
+          setTourPointerTab("history");
+        },
+        onDeselected: () => {
+          setTourPointerTab((current) =>
+            current === "history" ? null : current,
+          );
+        },
+        onPrevClick: (_element: any, _step: any, { driver }: any) => {
+          flushSync(() => {
+            setActiveTab("notepad");
+          });
+          setTimeout(() => {
+            driver.movePrevious();
+          }, 200);
+        },
+        onNextClick: (_element: any, _step: any, { driver }: any) => {
+          flushSync(() => {
+            setActiveTab("history");
+          });
+          moveTourNextWhenReady("#history-log-container", driver);
+        },
+      },
+      {
+        element: "#history-log-container",
+        popover: {
+          title: "Change History Log 🧾",
+          description:
+            "Review the audit trail for meals, groceries, deposits, notes, and monthly configuration changes.",
+          side: "bottom" as const,
+          align: "start" as const,
+        },
+        onPrevClick: (_element: any, _step: any, { driver }: any) => {
+          flushSync(() => {
+            setActiveTab("history");
           });
           setTimeout(() => {
             driver.movePrevious();
@@ -484,7 +601,7 @@ export default function Dashboard() {
           align: "end" as const,
         },
         onPrevClick: (_element: any, _step: any, { driver }: any) => {
-          setActiveTab("hardware");
+          setActiveTab("history");
           setTimeout(() => {
             driver.movePrevious();
           }, 200);
@@ -1553,8 +1670,9 @@ export default function Dashboard() {
           {/* Navigation */}
           <nav id="sidebar-nav" className="p-4 space-y-1">
             <button
+              id="sidebar-tab-dashboard"
               onClick={() => setActiveTab("dashboard")}
-              className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200 cursor-pointer ${
+              className={`relative w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200 cursor-pointer ${
                 activeTab === "dashboard"
                   ? "bg-indigo-600/15 text-indigo-400 border-l-4 border-indigo-500"
                   : "text-slate-400 hover:bg-slate-800 hover:text-slate-200"
@@ -1564,8 +1682,9 @@ export default function Dashboard() {
               <span>Welcome Home</span>
             </button>
             <button
+              id="sidebar-tab-tracker"
               onClick={() => setActiveTab("tracker")}
-              className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200 cursor-pointer ${
+              className={`relative w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200 cursor-pointer ${
                 activeTab === "tracker"
                   ? "bg-indigo-600/15 text-indigo-400 border-l-4 border-indigo-500"
                   : "text-slate-400 hover:bg-slate-800 hover:text-slate-200"
@@ -1573,10 +1692,16 @@ export default function Dashboard() {
             >
               <Utensils size={18} />
               <span>Kitchen & Meals</span>
+              {tourStarted && tourPointerTab === "tracker" && (
+                <span className="pointer-events-none absolute -right-1 top-1/2 -translate-y-1/2 text-slate-200/65 drop-shadow-[0_0_8px_rgba(148,163,184,0.28)] animate-bounce">
+                  <MousePointer2 size={18} />
+                </span>
+              )}
             </button>
             <button
+              id="sidebar-tab-hardware"
               onClick={() => setActiveTab("hardware")}
-              className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200 cursor-pointer ${
+              className={`relative w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200 cursor-pointer ${
                 activeTab === "hardware"
                   ? "bg-indigo-650/15 text-indigo-400 border-l-4 border-indigo-500"
                   : "text-slate-400 hover:bg-slate-850 hover:text-slate-200"
@@ -1584,10 +1709,16 @@ export default function Dashboard() {
             >
               <Laptop size={18} />
               <span>Device Desk</span>
+              {tourStarted && tourPointerTab === "hardware" && (
+                <span className="pointer-events-none absolute -right-1 top-1/2 -translate-y-1/2 text-slate-200/65 drop-shadow-[0_0_8px_rgba(148,163,184,0.28)] animate-bounce">
+                  <MousePointer2 size={18} />
+                </span>
+              )}
             </button>
             <button
+              id="sidebar-tab-notepad"
               onClick={() => setActiveTab("notepad")}
-              className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200 cursor-pointer ${
+              className={`relative w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200 cursor-pointer ${
                 activeTab === "notepad"
                   ? "bg-indigo-650/15 text-indigo-400 border-l-4 border-indigo-500"
                   : "text-slate-400 hover:bg-slate-850 hover:text-slate-200"
@@ -1595,10 +1726,16 @@ export default function Dashboard() {
             >
               <StickyNote size={18} />
               <span>House Notes</span>
+              {tourStarted && tourPointerTab === "notepad" && (
+                <span className="pointer-events-none absolute -right-1 top-1/2 -translate-y-1/2 text-slate-200/65 drop-shadow-[0_0_8px_rgba(148,163,184,0.28)] animate-bounce">
+                  <MousePointer2 size={18} />
+                </span>
+              )}
             </button>
             <button
+              id="sidebar-tab-history"
               onClick={() => setActiveTab("history")}
-              className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200 cursor-pointer ${
+              className={`relative w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200 cursor-pointer ${
                 activeTab === "history"
                   ? "bg-indigo-650/15 text-indigo-400 border-l-4 border-indigo-500"
                   : "text-slate-400 hover:bg-slate-850 hover:text-slate-200"
@@ -1606,6 +1743,11 @@ export default function Dashboard() {
             >
               <History size={18} />
               <span>Change History</span>
+              {tourStarted && tourPointerTab === "history" && (
+                <span className="pointer-events-none absolute -right-1 top-1/2 -translate-y-1/2 text-slate-200/65 drop-shadow-[0_0_8px_rgba(148,163,184,0.28)] animate-bounce">
+                  <MousePointer2 size={18} />
+                </span>
+              )}
             </button>
           </nav>
         </div>
@@ -1631,14 +1773,6 @@ export default function Dashboard() {
                   @{currentUser?.nickname}
                 </p>
               </div>
-              <button
-                onClick={() => launchTour(true)}
-                title="Show Tutorial"
-                className="flex items-center gap-1.5 px-2 py-1 rounded-lg bg-indigo-600/15 hover:bg-indigo-600/25 text-indigo-400 text-[10px] font-bold uppercase tracking-wider transition-all cursor-pointer border border-indigo-500/20"
-              >
-                <HelpCircle size={15} />
-                <span>Tutorial</span>
-              </button>
               <button
                 onClick={handleLogout}
                 title="Logout"
@@ -3975,7 +4109,10 @@ export default function Dashboard() {
 
           {/* History / Audit Log Tab */}
           {activeTab === "history" && (
-            <div className="space-y-6 animate-fade-in">
+            <div
+              id="history-log-container"
+              className="space-y-6 animate-fade-in"
+            >
               <div>
                 <h2 className="text-2xl font-bold text-white font-serif">
                   Change History Log
