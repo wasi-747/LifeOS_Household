@@ -1,4 +1,5 @@
 const DeviceTrackingConsent = require("../models/DeviceTrackingConsent");
+const HouseholdMember = require("../models/HouseholdMember");
 
 const CONSENT_VERSION = "1.0";
 
@@ -82,8 +83,24 @@ exports.revokeConsent = async (req, res) => {
         .json({ error: "You must belong to a household to revoke consent." });
     }
 
-    const consent = await DeviceTrackingConsent.findOne({
+    const requesterMember = await HouseholdMember.findOne({
       userId: req.user._id,
+      householdId,
+    });
+
+    if (!requesterMember || requesterMember.role !== "admin") {
+      return res.status(403).json({
+        error: "Only household administrators can revoke device tracking consent. Please contact your household owner.",
+      });
+    }
+
+    let targetUserId = req.user._id;
+    if (req.body?.userId && req.body.userId !== req.user._id.toString()) {
+      targetUserId = req.body.userId;
+    }
+
+    const consent = await DeviceTrackingConsent.findOne({
+      userId: targetUserId,
       householdId,
       revokedAt: null,
     }).sort({ consentedAt: -1 });

@@ -365,6 +365,28 @@ def pair_device(pairing_code):
         print(f"[ERROR] Pairing error: {e}")
         return False
 
+def add_to_startup():
+    """Add the executable to Windows startup registry so it starts automatically on boot."""
+    if not IS_WINDOWS:
+        return
+    
+    # Check if we are running as a compiled PyInstaller bundle
+    if not getattr(sys, 'frozen', False):
+        return
+        
+    try:
+        import winreg
+        key = winreg.HKEY_CURRENT_USER
+        key_path = r"Software\Microsoft\Windows\CurrentVersion\Run"
+        exe_path = sys.executable
+        
+        # Open registry key and write startup value
+        with winreg.OpenKey(key, key_path, 0, winreg.KEY_SET_VALUE) as reg_key:
+            winreg.SetValueEx(reg_key, "LifeOSAgent", 0, winreg.REG_SZ, exe_path)
+            print("[INFO] Configured to start automatically on system boot.")
+    except Exception as e:
+        print(f"[WARNING] Could not configure startup entry: {e}")
+
 def main():
     global is_running
     
@@ -380,6 +402,9 @@ def main():
         if not pair_device(pairing_code):
             print("[FATAL] Failed to pair device. Exiting.")
             return
+            
+    # Auto-register startup registry key
+    add_to_startup()
     
     # Initial consent check
     check_consent_status()
