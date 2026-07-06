@@ -2300,7 +2300,7 @@ export default function Dashboard() {
                                     />
                                   ))}
                                 </Pie>
-                                <Tooltip formatter={(value) => [`${value.toFixed(1)} hrs`, "Duration"]} />
+                                <Tooltip formatter={(value: any) => [`${typeof value === 'number' ? value.toFixed(1) : value} hrs`, "Duration"]} />
                                 <Legend layout="horizontal" align="center" verticalAlign="bottom" />
                               </PieChart>
                             </ResponsiveContainer>
