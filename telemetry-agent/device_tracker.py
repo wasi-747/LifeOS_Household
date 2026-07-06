@@ -126,7 +126,7 @@ def check_consent_status():
 
 def send_usage_batch():
     """Send accumulated usage data to the server."""
-    global usage_batch
+    global usage_batch, consent_active
     
     with batch_lock:
         if not usage_batch or not consent_active:
@@ -150,7 +150,6 @@ def send_usage_batch():
             print(f"[INFO] Sent {len(batch_to_send)} usage sessions successfully.")
         elif response.status_code == 403:
             print("[WARNING] Consent not active. Stopping collection.")
-            global consent_active
             consent_active = False
         else:
             print(f"[ERROR] Failed to send batch: {response.status_code} - {response.text}")
