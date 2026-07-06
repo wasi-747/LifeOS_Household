@@ -22,6 +22,10 @@ import {
   MessageSquare,
   HelpCircle,
   MousePointer2,
+  Monitor,
+  Tag,
+  Download,
+  AlertCircle,
 } from "lucide-react";
 import { driver } from "driver.js";
 import "driver.js/dist/driver.css";
@@ -29,6 +33,9 @@ import api from "../services/api";
 import Auth from "./Auth";
 import HomeOnboarding from "./HomeOnboarding";
 import ConfirmDialog from "./ConfirmDialog";
+import DeviceConsentModal from "./DeviceConsentModal";
+import DeviceTrackingSettings from "./DeviceTrackingSettings";
+import DeviceDownloadHelp from "./DeviceDownloadHelp";
 import {
   XAxis,
   YAxis,
@@ -197,6 +204,40 @@ export default function Dashboard() {
   );
   const [telemetryLoading, setTelemetryLoading] = useState<boolean>(false);
   const [telemetryError, setTelemetryError] = useState<string | null>(null);
+
+  // Device Usage Tracking States
+  const [consentStatus, setConsentStatus] = useState<{
+    isActive: boolean;
+    consentedAt: string | null;
+  }>({ isActive: false, consentedAt: null });
+  const [usageSummary, setUsageSummary] = useState<{
+    totalHours: number;
+    categoryBreakdown: Array<{ name: string; seconds: number; hours: number }>;
+    deviceLedger: Array<{
+      deviceId: string;
+      deviceName: string;
+      ownerName: string;
+      usageHours: number;
+      usagePercent: number;
+    }>;
+    period: string;
+  } | null>(null);
+  const [usageLoading, setUsageLoading] = useState<boolean>(false);
+  const [usagePeriod, setUsagePeriod] = useState<"daily" | "monthly">("daily");
+  const [untaggedApps, setUntaggedApps] = useState<
+    Array<{
+      appName: string;
+      totalSeconds: number;
+      totalHours: number;
+      sessionCount: number;
+      suggestedCategory: string | null;
+    }>
+  >([]);
+  const [untaggedLoading, setUntaggedLoading] = useState<boolean>(false);
+  const [showConsentModal, setShowConsentModal] = useState<boolean>(false);
+  const [showTrackingSettings, setShowTrackingSettings] = useState<boolean>(false);
+  const [showDownloadHelp, setShowDownloadHelp] = useState<boolean>(false);
+  const [trackingIndicatorVisible, setTrackingIndicatorVisible] = useState<boolean>(false);
 
   // Daily Tracker Interfaces & States
   interface TrackerUser {
@@ -1563,6 +1604,94 @@ export default function Dashboard() {
     fetchTelemetry();
   }, [activeTab, selectedDeviceId]);
 
+  // Device Usage Tracking Functions
+  const fetchConsentStatus = async () => {
+    try {
+      const response = await api.get("/device-consent/me");
+      setConsentStatus({
+        isActive: response.data.isActive,
+        consentedAt: response.data.consent?.consentedAt || null,
+      });
+      setTrackingIndicatorVisible(response.data.isActive);
+    } catch (err) {
+      console.error("Error fetching consent status:", err);
+    }
+  };
+
+  const fetchUsageSummary = async () => {
+    if (!consentStatus.isActive) return;
+    setUsageLoading(true);
+    try {
+      const response = await api.get("/device-usage/summary", {
+        params: { period: usagePeriod },
+      });
+      setUsageSummary(response.data);
+    } catch (err) {
+      console.error("Error fetching usage summary:", err);
+    } finally {
+      setUsageLoading(false);
+    }
+  };
+
+  const fetchUntaggedApps = async () => {
+    if (!consentStatus.isActive) return;
+    setUntaggedLoading(true);
+    try {
+      const response = await api.get("/device-usage/untagged");
+      setUntaggedApps(response.data.apps);
+    } catch (err) {
+      console.error("Error fetching untagged apps:", err);
+    } finally {
+      setUntaggedLoading(false);
+    }
+  };
+
+  const handleTagApp = async (appName: string, category: string) => {
+    try {
+      await api.post("/device-usage/categories/tag", { appName, category });
+      await fetchUntaggedApps();
+      await fetchUsageSummary();
+    } catch (err: any) {
+      showAlert(
+        "Error",
+        err.response?.data?.error || "Failed to tag app category",
+      );
+    }
+  };
+
+  const handleGeneratePairingCode = async () => {
+    try {
+      const response = await api.post("/devices/pair", {
+        deviceName: `${currentUser?.name || "My"}'s Device`,
+        os: navigator.platform,
+      });
+      showAlert(
+        "Pairing Code Generated",
+        `Your pairing code is: ${response.data.pairingCode}\n\nEnter this code in the LifeOS Agent on your device to link it. This code expires in 15 minutes.`,
+      );
+    } catch (err: any) {
+      showAlert(
+        "Error",
+        err.response?.data?.error || "Failed to generate pairing code",
+      );
+    }
+  };
+
+  // Fetch consent status on mount and when user changes
+  useEffect(() => {
+    if (currentUser?.homeId) {
+      fetchConsentStatus();
+    }
+  }, [currentUser]);
+
+  // Fetch usage data when consent is active and tab is hardware
+  useEffect(() => {
+    if (activeTab === "hardware" && consentStatus.isActive) {
+      fetchUsageSummary();
+      fetchUntaggedApps();
+    }
+  }, [activeTab, consentStatus.isActive, usagePeriod]);
+
   // Process data for the activity breakdown PieChart
   const getPieData = () => {
     if (!telemetryData || telemetryData.length === 0) return [];
@@ -2022,37 +2151,296 @@ export default function Dashboard() {
         <div className="p-8 space-y-8 flex-1">
           {/* Hardware & Telemetry View */}
           {activeTab === "hardware" && (
-            <div
-              id="device-desk-container"
-              className="flex flex-col items-center justify-center min-h-[50vh] animate-fade-in text-center p-8 bg-slate-900/20 border border-slate-800/40 rounded-3xl space-y-6 max-w-2xl mx-auto my-12 backdrop-blur-sm shadow-2xl animate-fade-in"
-            >
-              <div className="relative">
-                <div className="absolute -inset-1 rounded-full bg-gradient-to-r from-indigo-500 to-emerald-500 opacity-30 blur-lg animate-pulse"></div>
-                <div className="relative flex items-center justify-center w-16 h-16 rounded-full bg-slate-900 border border-slate-700 text-indigo-400">
-                  <Laptop size={32} className="animate-pulse" />
+            <div id="device-desk-container" className="space-y-6">
+              {/* Header */}
+              <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
+                <div>
+                  <h2 className="text-2xl font-bold text-white tracking-tight font-serif">
+                    Device Desk
+                  </h2>
+                  <p className="text-slate-400 text-sm">
+                    Track application usage and device activity across your household.
+                  </p>
+                </div>
+                <div className="flex items-center gap-3">
+                  {trackingIndicatorVisible && (
+                    <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/20">
+                      <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                      <span className="text-[10px] font-bold text-emerald-400 uppercase tracking-wider">
+                        Tracking Active
+                      </span>
+                    </div>
+                  )}
+                  <button
+                    onClick={() => setShowTrackingSettings(true)}
+                    className="flex items-center gap-2 px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-750 border border-slate-700 text-xs font-semibold text-slate-300 cursor-pointer transition-all"
+                  >
+                    <Sliders size={14} />
+                    Settings
+                  </button>
                 </div>
               </div>
 
-              <div className="space-y-2">
-                <h2 className="text-2xl font-bold tracking-tight text-white font-serif">
-                  Device Desk
-                </h2>
-                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-black tracking-widest bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 uppercase font-sans">
-                  Coming Soon
+              {/* Consent Required State */}
+              {!consentStatus.isActive && (
+                <div className="bg-slate-900/40 border border-slate-800 rounded-2xl p-8 text-center space-y-6">
+                  <div className="flex items-center justify-center w-16 h-16 rounded-full bg-indigo-600/20 text-indigo-400 mx-auto">
+                    <Monitor size={32} />
+                  </div>
+                  <div className="space-y-2">
+                    <h3 className="text-lg font-bold text-white font-serif">
+                      Enable Device Tracking
+                    </h3>
+                    <p className="text-slate-400 text-sm max-w-md mx-auto">
+                      Track which applications are used and for how long across your household devices. 
+                      GPU data helps categorize gaming vs work activities.
+                    </p>
+                  </div>
+                  <div className="flex flex-col sm:flex-row gap-3 justify-center">
+                    <button
+                      onClick={() => setShowConsentModal(true)}
+                      className="flex items-center justify-center gap-2 px-6 py-2.5 text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl cursor-pointer transition-all"
+                    >
+                      Enable Tracking
+                    </button>
+                    <button
+                      onClick={handleGeneratePairingCode}
+                      className="flex items-center justify-center gap-2 px-6 py-2.5 text-xs font-semibold text-slate-300 bg-slate-800 hover:bg-slate-750 border border-slate-700 rounded-xl cursor-pointer transition-all"
+                    >
+                      <Download size={14} />
+                      Get Pairing Code
+                    </button>
+                  </div>
+                  <button
+                    onClick={() => setShowDownloadHelp(true)}
+                    className="text-xs text-indigo-400 hover:text-indigo-300 underline cursor-pointer"
+                  >
+                    Installation help for unsigned apps
+                  </button>
+                  <div className="bg-slate-800/30 rounded-xl px-4 py-3 border border-slate-800 text-xs text-slate-400 leading-relaxed max-w-lg mx-auto">
+                    <p className="font-semibold text-slate-300 mb-1">We track:</p>
+                    <ul className="list-disc pl-4 space-y-0.5">
+                      <li>Application/process names and duration</li>
+                      <li>GPU utilization (for category suggestions)</li>
+                    </ul>
+                    <p className="font-semibold text-slate-300 mt-2 mb-1">Never tracked:</p>
+                    <ul className="list-disc pl-4 space-y-0.5">
+                      <li>Window titles, URLs, browser history, screen content</li>
+                    </ul>
+                  </div>
                 </div>
-              </div>
+              )}
 
-              <p className="text-slate-400 text-xs max-w-sm leading-relaxed font-medium">
-                We are building an intelligent hardware dashboard to check
-                active computer units, system health, and device logs in your
-                household in real-time.
-              </p>
+              {/* Active Tracking State */}
+              {consentStatus.isActive && (
+                <>
+                  {/* Period Toggle */}
+                  <div className="flex items-center gap-2 bg-slate-900 border border-slate-800 rounded-xl p-1 w-fit">
+                    <button
+                      onClick={() => setUsagePeriod("daily")}
+                      className={`px-4 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                        usagePeriod === "daily"
+                          ? "bg-indigo-600 text-white"
+                          : "text-slate-400 hover:text-slate-200"
+                      }`}
+                    >
+                      Today
+                    </button>
+                    <button
+                      onClick={() => setUsagePeriod("monthly")}
+                      className={`px-4 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                        usagePeriod === "monthly"
+                          ? "bg-indigo-600 text-white"
+                          : "text-slate-400 hover:text-slate-200"
+                      }`}
+                    >
+                      This Month
+                    </button>
+                  </div>
 
-              <div className="flex gap-2 text-[10px] text-slate-500 font-mono font-bold">
-                <span>● CPU TELEMETRY</span>
-                <span>● NETWORK LOGS</span>
-                <span>● SMART HOME INTEGRATION</span>
-              </div>
+                  {usageLoading ? (
+                    <div className="flex flex-col items-center justify-center h-64 gap-4">
+                      <Loader2 className="h-8 w-8 text-indigo-600 animate-spin" />
+                      <p className="text-slate-400 text-sm font-medium">
+                        Loading usage data...
+                      </p>
+                    </div>
+                  ) : usageSummary ? (
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                      {/* Category Breakdown Chart */}
+                      <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl space-y-4">
+                        <div>
+                          <h3 className="font-bold text-sm text-white">
+                            Application Share
+                          </h3>
+                          <span className="text-[10px] text-slate-500 block">
+                            {usagePeriod === "daily" ? "Today's" : "This month's"} category breakdown
+                          </span>
+                        </div>
+                        {usageSummary.categoryBreakdown.length > 0 ? (
+                          <div className="h-48 w-full">
+                            <ResponsiveContainer width="100%" height="100%">
+                              <PieChart>
+                                <Pie
+                                  data={usageSummary.categoryBreakdown.map((item) => ({
+                                    name: item.name,
+                                    value: item.hours,
+                                  }))}
+                                  cx="50%"
+                                  cy="50%"
+                                  innerRadius={45}
+                                  outerRadius={65}
+                                  paddingAngle={5}
+                                  dataKey="value"
+                                >
+                                  {usageSummary.categoryBreakdown.map((_, index) => (
+                                    <Cell
+                                      key={`cell-${index}`}
+                                      fill={PIE_COLORS[index % PIE_COLORS.length]}
+                                    />
+                                  ))}
+                                </Pie>
+                                <Tooltip formatter={(value) => [`${value.toFixed(1)} hrs`, "Duration"]} />
+                                <Legend layout="horizontal" align="center" verticalAlign="bottom" />
+                              </PieChart>
+                            </ResponsiveContainer>
+                          </div>
+                        ) : (
+                          <div className="flex-1 flex items-center justify-center text-slate-400 text-xs py-8">
+                            No usage data yet
+                          </div>
+                        )}
+                        <div className="text-center">
+                          <span className="text-2xl font-black text-indigo-400">
+                            {usageSummary.totalHours.toFixed(1)}
+                          </span>
+                          <span className="text-xs text-slate-500 block uppercase tracking-wider">
+                            Total Hours
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Device Usage Ledger */}
+                      <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl space-y-4">
+                        <div>
+                          <h3 className="font-bold text-sm text-white">
+                            Device Usage Ledger
+                          </h3>
+                          <span className="text-[10px] text-slate-500 block">
+                            Usage by device across household
+                          </span>
+                        </div>
+                        <div className="space-y-3 max-h-64 overflow-y-auto">
+                          {usageSummary.deviceLedger.length > 0 ? (
+                            usageSummary.deviceLedger.map((dev) => (
+                              <div
+                                key={dev.deviceId}
+                                className="flex justify-between items-center bg-slate-800/35 p-3 rounded-xl border border-slate-800/50"
+                              >
+                                <div>
+                                  <span className="font-semibold text-xs text-white block uppercase tracking-wider">
+                                    {dev.deviceName || dev.deviceId}
+                                  </span>
+                                  <span className="text-[10px] text-indigo-400 capitalize">
+                                    {dev.ownerName}
+                                  </span>
+                                </div>
+                                <div className="text-right">
+                                  <span className="text-xs font-bold text-indigo-400 block">
+                                    {dev.usageHours.toFixed(1)} hrs
+                                  </span>
+                                  <span className="text-[10px] text-slate-500">
+                                    {dev.usagePercent.toFixed(1)}% share
+                                  </span>
+                                </div>
+                              </div>
+                            ))
+                          ) : (
+                            <p className="text-slate-500 text-xs py-4 text-center">
+                              No devices with usage data
+                            </p>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* New Apps to Tag */}
+                      <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl space-y-4">
+                        <div>
+                          <h3 className="font-bold text-sm text-white flex items-center gap-2">
+                            <Tag size={14} />
+                            New Apps This Week
+                          </h3>
+                          <span className="text-[10px] text-slate-500 block">
+                            Tag apps to categorize household usage
+                          </span>
+                        </div>
+                        <div className="space-y-3 max-h-64 overflow-y-auto">
+                          {untaggedLoading ? (
+                            <div className="flex items-center justify-center py-4">
+                              <Loader2 size={16} className="animate-spin text-slate-500" />
+                            </div>
+                          ) : untaggedApps.length > 0 ? (
+                            untaggedApps.slice(0, 5).map((app) => (
+                              <div
+                                key={app.appName}
+                                className="bg-slate-800/35 p-3 rounded-xl border border-slate-800/50 space-y-2"
+                              >
+                                <div className="flex justify-between items-start">
+                                  <span className="font-semibold text-xs text-white block">
+                                    {app.appName}
+                                  </span>
+                                  <span className="text-[10px] text-slate-500">
+                                    {app.totalHours.toFixed(1)} hrs
+                                  </span>
+                                </div>
+                                <div className="flex gap-2">
+                                  <select
+                                    value={app.suggestedCategory || ""}
+                                    onChange={(e) => handleTagApp(app.appName, e.target.value)}
+                                    className="flex-1 bg-slate-900 text-xs text-slate-300 border border-slate-700 rounded px-2 py-1 focus:outline-none focus:border-indigo-500 cursor-pointer"
+                                  >
+                                    <option value="">Select category...</option>
+                                    <option value="Gaming">Gaming</option>
+                                    <option value="Work">Work</option>
+                                    <option value="Entertainment">Entertainment</option>
+                                    <option value="Other">Other</option>
+                                  </select>
+                                </div>
+                                {app.suggestedCategory && (
+                                  <span className="text-[10px] text-amber-400">
+                                    Suggested: {app.suggestedCategory} (GPU &gt; 50%)
+                                  </span>
+                                )}
+                              </div>
+                            ))
+                          ) : (
+                            <p className="text-slate-500 text-xs py-4 text-center">
+                              All apps are categorized
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="flex flex-col items-center justify-center h-64 gap-4 bg-slate-900/40 border border-slate-800 rounded-2xl p-8">
+                      <AlertCircle size={32} className="text-slate-500" />
+                      <h3 className="text-lg font-bold text-white font-serif">
+                        No Usage Data Yet
+                      </h3>
+                      <p className="text-slate-400 text-sm text-center max-w-md">
+                        Install the LifeOS Agent on your devices and enter the pairing code to start tracking usage.
+                      </p>
+                      <button
+                        onClick={handleGeneratePairingCode}
+                        className="flex items-center gap-2 px-6 py-2.5 text-xs font-semibold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl cursor-pointer transition-all"
+                      >
+                        <Download size={14} />
+                        Get Pairing Code
+                      </button>
+                    </div>
+                  )}
+                </>
+              )}
             </div>
           )}
           {(activeTab as any) === "hardware-disabled" && (
@@ -4689,6 +5077,37 @@ export default function Dashboard() {
           setConfirmDialog((prev) => ({ ...prev, isOpen: false }))
         }
       />
+
+      {/* Device Consent Modal */}
+      {showConsentModal && (
+        <DeviceConsentModal
+          onConsentGranted={() => {
+            setShowConsentModal(false);
+            fetchConsentStatus();
+          }}
+          onCancel={() => setShowConsentModal(false)}
+        />
+      )}
+
+      {/* Device Tracking Settings Modal */}
+      {showTrackingSettings && (
+        <DeviceTrackingSettings
+          isActive={consentStatus.isActive}
+          onConsentChanged={() => {
+            fetchConsentStatus();
+            if (!consentStatus.isActive) {
+              setUsageSummary(null);
+              setUntaggedApps([]);
+            }
+          }}
+          onClose={() => setShowTrackingSettings(false)}
+        />
+      )}
+
+      {/* Device Download Help Modal */}
+      {showDownloadHelp && (
+        <DeviceDownloadHelp onClose={() => setShowDownloadHelp(false)} />
+      )}
     </div>
   );
 }
