@@ -63,9 +63,19 @@ export default function DeviceDownloadHelp({ onClose }: DeviceDownloadHelpProps)
               Windows Installation
             </h3>
             <div className="bg-slate-800/50 rounded-xl p-4 border border-slate-700 space-y-3 text-xs">
+              <div className="pb-2">
+                <a
+                  href="/public/downloads/LifeOSAgent.exe"
+                  download="LifeOSAgent.exe"
+                  className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-650 hover:bg-indigo-600 text-white font-bold rounded-xl transition-all cursor-pointer shadow-md"
+                >
+                  <Download size={14} />
+                  Download LifeOSAgent.exe
+                </a>
+              </div>
               <ol className="list-decimal pl-5 space-y-2">
                 <li>
-                  <span className="font-medium text-slate-200">Download the agent:</span> Click the download button to get the Windows executable.
+                  <span className="font-medium text-slate-200">Download the agent:</span> Click the download button above to get the Windows executable.
                 </li>
                 <li>
                   <span className="font-medium text-slate-200">Run the installer:</span> Double-click the downloaded file.
@@ -95,21 +105,31 @@ export default function DeviceDownloadHelp({ onClose }: DeviceDownloadHelpProps)
               macOS Installation
             </h3>
             <div className="bg-slate-800/50 rounded-xl p-4 border border-slate-700 space-y-3 text-xs">
+              <div className="pb-2">
+                <a
+                  href="/public/downloads/LifeOSAgent.zip"
+                  download="LifeOSAgent.zip"
+                  className="inline-flex items-center gap-2 px-4 py-2 bg-slate-750 hover:bg-slate-700 text-slate-200 font-bold rounded-xl transition-all cursor-pointer shadow-md"
+                >
+                  <Download size={14} />
+                  Download LifeOSAgent.zip
+                </a>
+              </div>
               <ol className="list-decimal pl-5 space-y-2">
                 <li>
-                  <span className="font-medium text-slate-200">Download the agent:</span> Click the download button to get the macOS package.
+                  <span className="font-medium text-slate-200">Download the agent:</span> Click the download button above to get the macOS ZIP archive.
                 </li>
                 <li>
-                  <span className="font-medium text-slate-200">Open the package:</span> Double-click the downloaded .pkg file.
+                  <span className="font-medium text-slate-200">Extract & Run:</span> Unzip the file and run <span className="bg-slate-700 px-1.5 py-0.5 rounded text-white font-mono">python device_tracker.py</span> in Terminal (requires Python).
                 </li>
                 <li>
-                  <span className="font-medium text-slate-200">Gatekeeper warning:</span> If macOS blocks the app, go to <span className="bg-slate-700 px-1.5 py-0.5 rounded text-white font-mono">System Settings → Privacy & Security</span>.
+                  <span className="font-medium text-slate-200">Gatekeeper warning:</span> If macOS blocks Python or dependencies, go to <span className="bg-slate-700 px-1.5 py-0.5 rounded text-white font-mono">System Settings → Privacy & Security</span>.
                 </li>
                 <li>
-                  <span className="font-medium text-slate-200">Allow the app:</span> Find the LifeOS Agent notice and click <span className="bg-slate-700 px-1.5 py-0.5 rounded text-white font-mono">"Open Anyway"</span>.
+                  <span className="font-medium text-slate-200">Allow the app:</span> Click <span className="bg-slate-700 px-1.5 py-0.5 rounded text-white font-mono">"Open Anyway"</span>.
                 </li>
                 <li>
-                  <span className="font-medium text-slate-200">Pair your device:</span> Launch the agent from Terminal or Applications, enter the pairing code.
+                  <span className="font-medium text-slate-200">Pair your device:</span> Enter the pairing code from your LifeOS account when prompted.
                 </li>
               </ol>
               <div className="bg-slate-900/50 rounded-lg p-3 border border-slate-800">

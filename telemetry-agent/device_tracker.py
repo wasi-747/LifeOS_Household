@@ -17,13 +17,23 @@ try:
 except ImportError:
     pass
 
-# Load environment variables
-load_dotenv()
+def get_storage_dir():
+    """Get the folder where we should read/write configuration files."""
+    if getattr(sys, 'frozen', False):
+        # Bundled via PyInstaller
+        return os.path.dirname(sys.executable)
+    else:
+        # Running from source
+        return os.path.dirname(os.path.abspath(__file__))
 
-SERVER_URL = os.getenv('SERVER_URL', 'http://localhost:5000/api')
+# Load environment variables
+STORAGE_DIR = get_storage_dir()
+load_dotenv(os.path.join(STORAGE_DIR, '.env'))
+
+SERVER_URL = os.getenv('SERVER_URL', 'https://lifeos-household.onrender.com/api')
 DEVICE_TOKEN = os.getenv('DEVICE_TOKEN', '')
 DEVICE_ID = os.getenv('DEVICE_ID', '')
-PAUSE_FILE = os.path.join(os.path.dirname(__file__), '.pause')
+PAUSE_FILE = os.path.join(STORAGE_DIR, '.pause')
 
 # Tracking state
 is_paused = False
@@ -338,7 +348,7 @@ def pair_device(pairing_code):
             DEVICE_TOKEN = data['deviceToken']
             
             # Save to .env file
-            env_file = os.path.join(os.path.dirname(__file__), '.env')
+            env_file = os.path.join(STORAGE_DIR, '.env')
             with open(env_file, 'a') as f:
                 f.write(f'\nDEVICE_TOKEN={DEVICE_TOKEN}\n')
                 f.write(f'DEVICE_ID={DEVICE_ID}\n')
