@@ -4,6 +4,12 @@ interface DeviceDownloadHelpProps {
   onClose: () => void;
 }
 
+const getDownloadURL = (filename: string) => {
+  const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
+  const serverRoot = apiUrl.replace(/\/api\/?$/, "");
+  return `${serverRoot}/public/downloads/${filename}`;
+};
+
 export default function DeviceDownloadHelp({ onClose }: DeviceDownloadHelpProps) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -65,7 +71,7 @@ export default function DeviceDownloadHelp({ onClose }: DeviceDownloadHelpProps)
             <div className="bg-slate-800/50 rounded-xl p-4 border border-slate-700 space-y-3 text-xs">
               <div className="pb-2">
                 <a
-                  href="/public/downloads/LifeOSAgent.exe"
+                  href={getDownloadURL("LifeOSAgent.exe")}
                   download="LifeOSAgent.exe"
                   className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-650 hover:bg-indigo-600 text-white font-bold rounded-xl transition-all cursor-pointer shadow-md"
                 >
@@ -107,7 +113,7 @@ export default function DeviceDownloadHelp({ onClose }: DeviceDownloadHelpProps)
             <div className="bg-slate-800/50 rounded-xl p-4 border border-slate-700 space-y-3 text-xs">
               <div className="pb-2">
                 <a
-                  href="/public/downloads/LifeOSAgent.zip"
+                  href={getDownloadURL("LifeOSAgent.zip")}
                   download="LifeOSAgent.zip"
                   className="inline-flex items-center gap-2 px-4 py-2 bg-slate-750 hover:bg-slate-700 text-slate-200 font-bold rounded-xl transition-all cursor-pointer shadow-md"
                 >
