@@ -13,12 +13,24 @@ const Home = require('./models/Home');
 const Household = require('./models/Household');
 const HouseholdMember = require('./models/HouseholdMember');
 
-const MONGO_URI = process.env.MONGO_URI || 'mongodb://127.0.0.1:27017/lifeos_household';
+const DEV_MONGO_URI = process.env.DEV_MONGO_URI || 'mongodb://127.0.0.1:27017/lifeos_household_dev';
+const PROD_MONGO_URI = process.env.MONGO_URI;
 
 async function seed() {
   try {
-    console.log('Connecting to MongoDB Atlas to seed MERN & Telemetry data...');
-    await mongoose.connect(MONGO_URI);
+    // Safety check to prevent seeding/wiping the production database
+    if (PROD_MONGO_URI && DEV_MONGO_URI === PROD_MONGO_URI) {
+      console.error('CRITICAL WARNING: DEV_MONGO_URI is identical to production MONGO_URI. Aborting seed operation to prevent data loss!');
+      process.exit(1);
+    }
+    if (DEV_MONGO_URI.includes('lifeoshousehold_db_user') || DEV_MONGO_URI.includes('cluster0.eogtxun.mongodb.net')) {
+      console.error('CRITICAL WARNING: The connection URI appears to point to the production database cluster. Aborting seed operation!');
+      process.exit(1);
+    }
+
+    console.log('Connecting to MongoDB (Development) to seed MERN & Telemetry data...');
+    console.log(`Target: ${DEV_MONGO_URI.replace(/:([^@]+)@/, ':****@')}`);
+    await mongoose.connect(DEV_MONGO_URI);
     console.log('Connected. Clearing all collections...');
 
     await Home.deleteMany({});
