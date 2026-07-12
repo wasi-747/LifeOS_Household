@@ -1007,6 +1007,7 @@ export default function Dashboard() {
       showAlert("Success", response.data.message);
       setInviteNickname("");
       fetchSummary();
+      fetchBillConfig();
       if (activeTab === "tracker") {
         fetchTracker();
       }
@@ -1312,6 +1313,11 @@ export default function Dashboard() {
     } catch (err) {
       console.error("Error fetching monthly bill config:", err);
     }
+  };
+
+  const openConfigModal = () => {
+    fetchBillConfig();
+    setIsConfigModalOpen(true);
   };
 
   useEffect(() => {
@@ -2061,7 +2067,7 @@ export default function Dashboard() {
                 </button>
 
                 <button
-                  onClick={() => setIsConfigModalOpen(true)}
+                  onClick={openConfigModal}
                   className="flex items-center gap-1.5 bg-indigo-650 hover:bg-indigo-750 text-xs font-bold text-white px-3 py-1.5 rounded-lg shadow-lg shadow-indigo-500/20 transition-all cursor-pointer"
                 >
                   <Sliders size={14} />
@@ -3910,7 +3916,7 @@ export default function Dashboard() {
                           data.
                         </p>
                         <button
-                          onClick={() => setIsConfigModalOpen(true)}
+                          onClick={openConfigModal}
                           className="flex items-center gap-1.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold px-4 py-2 rounded-xl transition-all cursor-pointer mt-2"
                         >
                           <Sliders size={14} />

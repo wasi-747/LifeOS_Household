@@ -84,6 +84,33 @@ exports.getSummary = async (req, res) => {
         adjustments: defaultAdjustments
       });
       await monthlyBill.save();
+    } else {
+      let modified = false;
+      users.forEach(u => {
+        const uIdStr = u._id.toString();
+        const hasAdj = monthlyBill.adjustments.some(a => a.user && a.user.toString() === uIdStr);
+        if (!hasAdj) {
+          monthlyBill.adjustments.push({
+            user: u._id,
+            prevUtilityDue: 0,
+            prevMealDue: 0,
+            utilityPayment: 0,
+            rentPayment: 0,
+            note: ''
+          });
+          modified = true;
+        }
+        if (!monthlyBill.rent || !monthlyBill.rent.has(uIdStr)) {
+          if (!monthlyBill.rent) {
+            monthlyBill.rent = new Map();
+          }
+          monthlyBill.rent.set(uIdStr, 0);
+          modified = true;
+        }
+      });
+      if (modified) {
+        await monthlyBill.save();
+      }
     }
 
     // Fetch BazarWallet for wallet balances

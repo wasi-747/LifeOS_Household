@@ -1,4 +1,5 @@
 const mongoose = require('mongoose');
+const bcrypt = require('bcryptjs');
 require('dotenv').config();
 
 const User = require('./models/User');
@@ -8,6 +9,9 @@ const DeviceTelemetry = require('./models/DeviceTelemetry');
 const MonthConfig = require('./models/MonthConfig');
 const MonthlyBill = require('./models/MonthlyBill');
 const BazarWallet = require('./models/BazarWallet');
+const Home = require('./models/Home');
+const Household = require('./models/Household');
+const HouseholdMember = require('./models/HouseholdMember');
 
 const MONGO_URI = process.env.MONGO_URI || 'mongodb://127.0.0.1:27017/lifeos_household';
 
@@ -17,6 +21,9 @@ async function seed() {
     await mongoose.connect(MONGO_URI);
     console.log('Connected. Clearing all collections...');
 
+    await Home.deleteMany({});
+    await Household.deleteMany({});
+    await HouseholdMember.deleteMany({});
     await User.deleteMany({});
     await DailyMeal.deleteMany({});
     await Transaction.deleteMany({});
@@ -26,17 +33,56 @@ async function seed() {
     await BazarWallet.deleteMany({});
     console.log('Collections cleared.');
 
+    const hashedPassword = await bcrypt.hash('password123', 10);
+
     // 1. Create Roommate Users
     console.log('Creating users...');
     const users = await User.create([
-      { name: 'Wasiur', email: 'wasiur@lifeos.com', role: 'admin', currentBalance: 0 },
-      { name: 'Zesrab', email: 'zesrab@lifeos.com', role: 'member', currentBalance: 0 },
-      { name: 'Borno', email: 'borno@lifeos.com', role: 'member', currentBalance: 0 },
-      { name: 'Taharat', email: 'taharat@lifeos.com', role: 'member', currentBalance: 0 }
+      { name: 'Wasiur', nickname: 'wasiur', email: 'wasiur@lifeos.com', password: hashedPassword, role: 'admin' },
+      { name: 'Zesrab', nickname: 'zesrab', email: 'zesrab@lifeos.com', password: hashedPassword, role: 'member' },
+      { name: 'Borno', nickname: 'borno', email: 'borno@lifeos.com', password: hashedPassword, role: 'member' },
+      { name: 'Taharat', nickname: 'taharat', email: 'taharat@lifeos.com', password: hashedPassword, role: 'member' }
     ]);
 
     const [wasiur, zesrab, borno, taharat] = users;
     console.log(`Users created: ${wasiur.name}, ${zesrab.name}, ${borno.name}, ${taharat.name}`);
+
+    // Create Home and Household
+    console.log('Creating Home and Household...');
+    const home = await Home.create({
+      name: 'LifeOS Cozy Home',
+      admin: wasiur._id,
+      members: users.map(u => u._id),
+      utilityControlMembers: users.map(u => u._id)
+    });
+
+    await Household.create({
+      _id: home._id,
+      name: home.name,
+      admin: wasiur._id,
+      members: users.map(u => u._id),
+      utilityControlMembers: users.map(u => u._id)
+    });
+
+    for (const u of users) {
+      await HouseholdMember.create({
+        householdId: home._id,
+        userId: u._id,
+        role: u.role,
+        joinedAt: new Date()
+      });
+      u.homeId = home._id;
+      await u.save();
+    }
+    console.log('Home and Household created.');
+
+    // 1.5. Create MonthConfig
+    console.log('Creating month config...');
+    await MonthConfig.create({
+      monthId: 'July-2026',
+      homeId: home._id,
+      days: 31
+    });
 
     // 2. Create PC Telemetry Logs (July-2026)
     console.log('Creating device telemetry logs...');
@@ -48,6 +94,7 @@ async function seed() {
       telemetries.push({
         deviceId: 'jashore-laptop',
         ownerId: wasiur._id,
+        homeId: home._id,
         timestamp: new Date(now.getTime() - i * 10 * 60 * 1000), // 10-minute intervals
         cpuUsage: Math.round(15 + Math.random() * 20),
         ramUsage: Math.round(50 + Math.random() * 10),
@@ -61,6 +108,7 @@ async function seed() {
       telemetries.push({
         deviceId: 'nafis-mac',
         ownerId: zesrab._id,
+        homeId: home._id,
         timestamp: new Date(now.getTime() - i * 8 * 60 * 1000),
         cpuUsage: Math.round(25 + Math.random() * 30),
         ramUsage: Math.round(60 + Math.random() * 15),
@@ -74,6 +122,7 @@ async function seed() {
       telemetries.push({
         deviceId: 'tanvir-rig',
         ownerId: borno._id,
+        homeId: home._id,
         timestamp: new Date(now.getTime() - i * 6 * 60 * 1000),
         cpuUsage: Math.round(35 + Math.random() * 45),
         ramUsage: Math.round(70 + Math.random() * 20),
@@ -87,6 +136,7 @@ async function seed() {
       telemetries.push({
         deviceId: 'taharat-pc',
         ownerId: taharat._id,
+        homeId: home._id,
         timestamp: new Date(now.getTime() - i * 9 * 60 * 1000),
         cpuUsage: Math.round(20 + Math.random() * 25),
         ramUsage: Math.round(55 + Math.random() * 12),
@@ -105,6 +155,7 @@ async function seed() {
       {
         date: new Date('2026-07-06'),
         monthId: 'July-2026',
+        homeId: home._id,
         type: 'BAZAR',
         category: 'Groceries and veggies',
         amount: 2196.00,
@@ -114,6 +165,7 @@ async function seed() {
       {
         date: new Date('2026-07-13'),
         monthId: 'July-2026',
+        homeId: home._id,
         type: 'BAZAR',
         category: 'Meat and fish',
         amount: 2316.00,
@@ -123,6 +175,7 @@ async function seed() {
       {
         date: new Date('2026-07-22'),
         monthId: 'July-2026',
+        homeId: home._id,
         type: 'BAZAR',
         category: 'Household supplies and bazar',
         amount: 2445.00,
@@ -132,6 +185,7 @@ async function seed() {
       {
         date: new Date('2026-07-28'),
         monthId: 'July-2026',
+        homeId: home._id,
         type: 'BAZAR',
         category: 'Spices and grocery',
         amount: 3013.00,
@@ -142,6 +196,7 @@ async function seed() {
       {
         date: new Date('2026-07-01'),
         monthId: 'July-2026',
+        homeId: home._id,
         type: 'RENT',
         category: 'Apartment Rent',
         amount: 750.00,
@@ -159,6 +214,7 @@ async function seed() {
       {
         date: new Date('2026-07-03'),
         monthId: 'July-2026',
+        homeId: home._id,
         type: 'UTILITY',
         category: 'Smart-Meter Electricity Bill',
         amount: 180.00,
@@ -169,6 +225,7 @@ async function seed() {
       {
         date: new Date('2026-07-01'),
         monthId: 'July-2026',
+        homeId: home._id,
         type: 'DEPOSIT',
         category: 'Monthly advance deposit',
         amount: 2448.00,
@@ -178,6 +235,7 @@ async function seed() {
       {
         date: new Date('2026-07-01'),
         monthId: 'July-2026',
+        homeId: home._id,
         type: 'DEPOSIT',
         category: 'Monthly advance deposit',
         amount: 2349.94,
@@ -187,6 +245,7 @@ async function seed() {
       {
         date: new Date('2026-07-01'),
         monthId: 'July-2026',
+        homeId: home._id,
         type: 'DEPOSIT',
         category: 'Monthly advance deposit',
         amount: 2874.01,
@@ -196,6 +255,7 @@ async function seed() {
       {
         date: new Date('2026-07-01'),
         monthId: 'July-2026',
+        homeId: home._id,
         type: 'DEPOSIT',
         category: 'Monthly advance deposit',
         amount: 2769.92,
@@ -226,6 +286,7 @@ async function seed() {
       dailyMeals.push({
         date: new Date(`2026-07-${day < 10 ? '0' + day : day}T12:00:00Z`),
         monthId: 'July-2026',
+        homeId: home._id,
         guestMeals: 0,
         meals: [
           { user: wasiur._id, count: wCount },
