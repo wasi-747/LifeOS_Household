@@ -436,6 +436,11 @@ def main():
     batch_thread = threading.Thread(target=batch_sender_loop, daemon=True)
     consent_thread = threading.Thread(target=consent_check_loop, daemon=True)
     pause_thread = threading.Thread(target=check_pause_file, daemon=True)
+    
+    tracking_thread.start()
+    batch_thread.start()
+    consent_thread.start()
+    pause_thread.start()
     # Only start input thread if stdout/console is available
     has_console = sys.stdout is not None
     if has_console:
