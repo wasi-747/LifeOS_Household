@@ -23,6 +23,9 @@ const deviceAuthMiddleware = require("../middleware/deviceAuthMiddleware");
 // Public Auth routes
 router.post("/auth/signup", authController.signup);
 router.post("/auth/login", authController.login);
+router.post("/auth/forgot-password", authController.forgotPassword);
+router.post("/auth/verify-otp", authController.verifyOtp);
+router.post("/auth/reset-password", authController.resetPassword);
 
 // Protected Auth & Home routes
 router.get("/auth/me", authMiddleware, authController.getMe);

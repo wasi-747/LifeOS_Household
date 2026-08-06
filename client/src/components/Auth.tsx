@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Home, Loader2, KeyRound, User, Mail, ShieldAlert, Check } from 'lucide-react';
+import { Home, Loader2, KeyRound, User, Mail, ShieldAlert, Check, X, ArrowLeft, Key } from 'lucide-react';
 import api from '../services/api';
 
 interface AuthProps {
@@ -11,13 +11,23 @@ export default function Auth({ onAuthSuccess }: AuthProps) {
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [rememberMe, setRememberMe] = useState<boolean>(true);
-  const [showKeyHelp, setShowKeyHelp] = useState<boolean>(false);
+  const [successBanner, setSuccessBanner] = useState<string | null>(null);
 
   // Form Fields
   const [name, setName] = useState<string>('');
   const [nickname, setNickname] = useState<string>('');
   const [email, setEmail] = useState<string>('');
   const [password, setPassword] = useState<string>('');
+
+  // Password Reset Modal States
+  const [isResetModalOpen, setIsResetModalOpen] = useState<boolean>(false);
+  const [resetStep, setResetStep] = useState<1 | 2 | 3>(1);
+  const [resetEmail, setResetEmail] = useState<string>('');
+  const [resetOtpInput, setResetOtpInput] = useState<string>('');
+  const [newPasswordInput, setNewPasswordInput] = useState<string>('');
+  const [confirmPasswordInput, setConfirmPasswordInput] = useState<string>('');
+  const [resetLoading, setResetLoading] = useState<boolean>(false);
+  const [resetError, setResetError] = useState<string | null>(null);
 
   // Time-of-day greeting calculation
   const [greeting, setGreeting] = useState<string>('Good morning');
@@ -33,6 +43,7 @@ export default function Auth({ onAuthSuccess }: AuthProps) {
     e.preventDefault();
     setLoading(true);
     setError(null);
+    setSuccessBanner(null);
 
     try {
       if (isLogin) {
@@ -57,6 +68,84 @@ export default function Auth({ onAuthSuccess }: AuthProps) {
       setError(err.response?.data?.error || 'Unable to open the front door. Please verify your details.');
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Step 1: Send OTP to Email
+  const handleSendOtp = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!resetEmail.trim()) return;
+    setResetLoading(true);
+    setResetError(null);
+
+    try {
+      await api.post('/auth/forgot-password', { emailOrNickname: resetEmail });
+      setResetStep(2);
+    } catch (err: any) {
+      console.error('Send OTP error:', err);
+      setResetError(err.response?.data?.error || 'Failed to send reset email. Please try again.');
+    } finally {
+      setResetLoading(false);
+    }
+  };
+
+  // Step 2: Verify OTP Code
+  const handleVerifyOtp = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!resetOtpInput.trim()) return;
+    setResetLoading(true);
+    setResetError(null);
+
+    try {
+      await api.post('/auth/verify-otp', { emailOrNickname: resetEmail, otp: resetOtpInput });
+      setResetStep(3);
+    } catch (err: any) {
+      console.error('Verify OTP error:', err);
+      setResetError(err.response?.data?.error || 'Invalid or expired OTP code.');
+    } finally {
+      setResetLoading(false);
+    }
+  };
+
+  // Step 3: Reset Password
+  const handleResetPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (newPasswordInput !== confirmPasswordInput) {
+      setResetError('Passwords do not match. Please re-enter.');
+      return;
+    }
+    if (newPasswordInput.length < 4) {
+      setResetError('New password must be at least 4 characters.');
+      return;
+    }
+
+    setResetLoading(true);
+    setResetError(null);
+
+    try {
+      const res = await api.post('/auth/reset-password', {
+        emailOrNickname: resetEmail,
+        otp: resetOtpInput,
+        newPassword: newPasswordInput
+      });
+
+      setIsResetModalOpen(false);
+      setIsLogin(true);
+      setEmail(resetEmail);
+      setPassword('');
+      setSuccessBanner(res.data.message || 'Password reset successful! You can now log in with your new key.');
+      
+      // Reset Modal States
+      setResetStep(1);
+      setResetEmail('');
+      setResetOtpInput('');
+      setNewPasswordInput('');
+      setConfirmPasswordInput('');
+    } catch (err: any) {
+      console.error('Reset password error:', err);
+      setResetError(err.response?.data?.error || 'Failed to reset password. Please try again.');
+    } finally {
+      setResetLoading(false);
     }
   };
 
@@ -93,27 +182,19 @@ export default function Auth({ onAuthSuccess }: AuthProps) {
             </div>
           </div>
 
+          {/* Success Banner */}
+          {successBanner && (
+            <div className="bg-emerald-950/20 border border-emerald-900/30 rounded-2xl p-3.5 flex gap-3 items-start text-xs text-emerald-400 font-medium leading-normal animate-fade-in">
+              <Check size={16} className="shrink-0 mt-0.5 text-emerald-400" />
+              <span>{successBanner}</span>
+            </div>
+          )}
+
           {/* Soft Warm Error Banner */}
           {error && (
             <div className="bg-rose-950/20 border border-rose-900/30 rounded-2xl p-3.5 flex gap-3 items-start text-xs text-[#E38D73] font-medium leading-normal animate-shake">
               <ShieldAlert size={16} className="shrink-0 mt-0.5 text-[#E38D73]" />
               <span>{error}</span>
-            </div>
-          )}
-
-          {/* Lost Your Key Info Alert */}
-          {showKeyHelp && (
-            <div className="bg-[#1C1512] border border-[#382923] rounded-2xl p-3.5 text-xs text-[#D9CEC1] space-y-1.5 animate-fade-in">
-              <p className="font-bold text-[#FAF6F0]">🔑 Lost your key?</p>
-              <p className="leading-relaxed">
-                Ask your household admin to verify your nickname, or contact your room manager to re-issue your invite token.
-              </p>
-              <button
-                onClick={() => setShowKeyHelp(false)}
-                className="text-[11px] font-bold text-[#E38D73] hover:underline cursor-pointer bg-transparent border-none p-0 mt-1"
-              >
-                Dismiss
-              </button>
             </div>
           )}
 
@@ -211,7 +292,12 @@ export default function Auth({ onAuthSuccess }: AuthProps) {
 
                 <button
                   type="button"
-                  onClick={() => setShowKeyHelp(!showKeyHelp)}
+                  onClick={() => {
+                    setResetEmail(email);
+                    setResetStep(1);
+                    setResetError(null);
+                    setIsResetModalOpen(true);
+                  }}
                   className="text-[#E38D73] hover:text-[#F2A38A] font-semibold hover:underline transition-all cursor-pointer bg-transparent border-none"
                 >
                   Lost your key?
@@ -244,7 +330,6 @@ export default function Auth({ onAuthSuccess }: AuthProps) {
                 onClick={() => {
                   setIsLogin(!isLogin);
                   setError(null);
-                  setShowKeyHelp(false);
                 }}
                 className="text-[#E38D73] hover:text-[#F2A38A] font-bold hover:underline transition-all cursor-pointer bg-transparent border-none ml-1"
               >
@@ -345,6 +430,178 @@ export default function Auth({ onAuthSuccess }: AuthProps) {
         </div>
 
       </div>
+
+      {/* 🔑 3-Step Email OTP Password Reset Modal */}
+      {isResetModalOpen && (
+        <div className="fixed inset-0 bg-black/75 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-[#251B17] border border-[#382923] w-full max-w-md rounded-3xl p-6 sm:p-8 shadow-2xl space-y-6 relative animate-fade-in">
+            {/* Modal Header */}
+            <div className="flex justify-between items-center border-b border-[#382923] pb-4">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-xl bg-[#E38D73]/15 text-[#E38D73] flex items-center justify-center">
+                  <Key size={16} />
+                </div>
+                <div>
+                  <h3 className="font-serif font-bold text-base text-[#FAF6F0]">Reset Password Key</h3>
+                  <p className="text-[10px] text-[#A69788]">Step {resetStep} of 3</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setIsResetModalOpen(false)}
+                className="p-1 hover:bg-[#382923] rounded-lg text-[#A69788] hover:text-[#FAF6F0] transition-colors cursor-pointer"
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            {/* Error Banner in Modal */}
+            {resetError && (
+              <div className="bg-rose-950/20 border border-rose-900/30 rounded-2xl p-3 flex gap-2.5 items-start text-xs text-[#E38D73] leading-normal animate-shake">
+                <ShieldAlert size={16} className="shrink-0 mt-0.5 text-[#E38D73]" />
+                <span>{resetError}</span>
+              </div>
+            )}
+
+            {/* STEP 1: Request Email OTP */}
+            {resetStep === 1 && (
+              <form onSubmit={handleSendOtp} className="space-y-4">
+                <p className="text-xs text-[#A69788] leading-relaxed">
+                  Enter your registered household email or handle (@nickname). We will send a 6-digit OTP reset key to your email address from <span className="text-[#E38D73] font-bold">lifeos.household@gmail.com</span>.
+                </p>
+                <div className="space-y-1.5">
+                  <label className="text-[10px] uppercase font-bold tracking-wider text-[#A69788]">Email or Handle (@nickname)</label>
+                  <div className="relative">
+                    <span className="absolute left-3.5 top-3 text-[#78695C]">
+                      <Mail size={15} />
+                    </span>
+                    <input
+                      type="text"
+                      placeholder="e.g. alex or alex@example.com"
+                      value={resetEmail}
+                      onChange={(e) => setResetEmail(e.target.value)}
+                      className="w-full bg-[#1C1512] border border-[#382923] rounded-2xl pl-10 pr-4 py-3 text-xs text-[#FAF6F0] font-medium placeholder-[#78695C] focus:outline-none focus:border-[#E38D73] focus:ring-2 focus:ring-[#E38D73]/15 transition-all"
+                      required
+                    />
+                  </div>
+                </div>
+
+                <div className="flex justify-end gap-3 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => setIsResetModalOpen(false)}
+                    className="bg-[#1C1512] hover:bg-[#2E221E] border border-[#382923] text-xs font-semibold text-[#A69788] px-4 py-2.5 rounded-xl transition-all cursor-pointer"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={resetLoading}
+                    className="bg-[#E38D73] hover:bg-[#F2A38A] disabled:opacity-50 text-[#1C1512] font-bold text-xs px-5 py-2.5 rounded-xl shadow-md transition-all cursor-pointer flex items-center gap-2"
+                  >
+                    {resetLoading ? <Loader2 size={14} className="animate-spin text-[#1C1512]" /> : null}
+                    <span>Send Reset Key →</span>
+                  </button>
+                </div>
+              </form>
+            )}
+
+            {/* STEP 2: Verify 6-Digit OTP */}
+            {resetStep === 2 && (
+              <form onSubmit={handleVerifyOtp} className="space-y-4">
+                <div className="bg-[#1C1512] border border-[#382923] p-3 rounded-2xl text-xs text-[#A69788] leading-relaxed">
+                  📧 Check your email inbox (<span className="text-[#FAF6F0] font-bold">{resetEmail}</span>) for your 6-digit key.
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-[10px] uppercase font-bold tracking-wider text-[#A69788]">6-Digit OTP Code</label>
+                  <input
+                    type="text"
+                    maxLength={6}
+                    placeholder="e.g. 592814"
+                    value={resetOtpInput}
+                    onChange={(e) => setResetOtpInput(e.target.value.replace(/\D/g, ''))}
+                    className="w-full bg-[#1C1512] border border-[#382923] rounded-2xl px-4 py-3 text-center text-lg tracking-[8px] font-extrabold text-[#E38D73] focus:outline-none focus:border-[#E38D73] focus:ring-2 focus:ring-[#E38D73]/15 transition-all"
+                    required
+                  />
+                </div>
+
+                <div className="flex justify-between items-center pt-2">
+                  <button
+                    type="button"
+                    onClick={() => setResetStep(1)}
+                    className="text-xs text-[#A69788] hover:text-[#FAF6F0] flex items-center gap-1 cursor-pointer bg-transparent border-none"
+                  >
+                    <ArrowLeft size={13} />
+                    <span>Back</span>
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={resetLoading || resetOtpInput.length < 6}
+                    className="bg-[#E38D73] hover:bg-[#F2A38A] disabled:opacity-50 text-[#1C1512] font-bold text-xs px-5 py-2.5 rounded-xl shadow-md transition-all cursor-pointer flex items-center gap-2"
+                  >
+                    {resetLoading ? <Loader2 size={14} className="animate-spin text-[#1C1512]" /> : null}
+                    <span>Verify Key →</span>
+                  </button>
+                </div>
+              </form>
+            )}
+
+            {/* STEP 3: Set New Password */}
+            {resetStep === 3 && (
+              <form onSubmit={handleResetPassword} className="space-y-4">
+                <p className="text-xs text-[#A69788] leading-relaxed">
+                  Key verified! Enter a new password for your LifeOS account.
+                </p>
+
+                <div className="space-y-1.5">
+                  <label className="text-[10px] uppercase font-bold tracking-wider text-[#A69788]">New Password</label>
+                  <div className="relative">
+                    <span className="absolute left-3.5 top-3 text-[#78695C]">
+                      <KeyRound size={15} />
+                    </span>
+                    <input
+                      type="password"
+                      placeholder="••••••••"
+                      value={newPasswordInput}
+                      onChange={(e) => setNewPasswordInput(e.target.value)}
+                      className="w-full bg-[#1C1512] border border-[#382923] rounded-2xl pl-10 pr-4 py-3 text-xs text-[#FAF6F0] font-medium placeholder-[#78695C] focus:outline-none focus:border-[#E38D73] focus:ring-2 focus:ring-[#E38D73]/15 transition-all"
+                      required
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-[10px] uppercase font-bold tracking-wider text-[#A69788]">Confirm New Password</label>
+                  <div className="relative">
+                    <span className="absolute left-3.5 top-3 text-[#78695C]">
+                      <KeyRound size={15} />
+                    </span>
+                    <input
+                      type="password"
+                      placeholder="••••••••"
+                      value={confirmPasswordInput}
+                      onChange={(e) => setConfirmPasswordInput(e.target.value)}
+                      className="w-full bg-[#1C1512] border border-[#382923] rounded-2xl pl-10 pr-4 py-3 text-xs text-[#FAF6F0] font-medium placeholder-[#78695C] focus:outline-none focus:border-[#E38D73] focus:ring-2 focus:ring-[#E38D73]/15 transition-all"
+                      required
+                    />
+                  </div>
+                </div>
+
+                <div className="flex justify-end gap-3 pt-2">
+                  <button
+                    type="submit"
+                    disabled={resetLoading}
+                    className="w-full bg-[#E38D73] hover:bg-[#F2A38A] disabled:opacity-50 text-[#1C1512] font-bold text-xs py-3 rounded-xl shadow-md transition-all cursor-pointer flex items-center justify-center gap-2"
+                  >
+                    {resetLoading ? <Loader2 size={14} className="animate-spin text-[#1C1512]" /> : null}
+                    <span>Save New Key & Head Home →</span>
+                  </button>
+                </div>
+              </form>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
