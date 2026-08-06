@@ -228,13 +228,14 @@ exports.forgotPassword = async (req, res) => {
       </div>
     `;
 
-    // 1. Try Resend API if RESEND_API_KEY is defined in environment variables (Fast 200ms HTTPS REST API)
-    if (process.env.RESEND_API_KEY) {
+    // 1. Try Resend API (Fast 200ms HTTPS REST API - Cloud Safe)
+    const resendApiKey = process.env.RESEND_API_KEY;
+    if (resendApiKey) {
       try {
         const resendRes = await fetch("https://api.resend.com/emails", {
           method: "POST",
           headers: {
-            Authorization: `Bearer ${process.env.RESEND_API_KEY.trim()}`,
+            Authorization: `Bearer ${resendApiKey.trim()}`,
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
