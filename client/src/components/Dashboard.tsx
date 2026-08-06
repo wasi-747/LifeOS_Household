@@ -1613,10 +1613,14 @@ export default function Dashboard() {
     }
   };
 
-  // Fetch summary calculations
+  // Fetch summary calculations, home details, and available months
   useEffect(() => {
-    fetchSummary();
-  }, [monthId]);
+    if (token && currentUser && currentUser.homeId) {
+      fetchSummary();
+      fetchHomeDetails();
+      fetchMonths();
+    }
+  }, [monthId, token, currentUser]);
 
   // Fetch list of unique devices in household
   useEffect(() => {
