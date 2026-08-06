@@ -46,6 +46,22 @@ const MonthlyBillSchema = new mongoose.Schema({
     type: Map,
     of: String,
     default: {}
+  },
+  utilitySplitRules: {
+    type: Map,
+    of: {
+      mode: {
+        type: String,
+        enum: ['equal', 'weighted', 'surcharge', 'fixed'],
+        default: 'equal'
+      },
+      customValues: {
+        type: Map,
+        of: Number,
+        default: {}
+      }
+    },
+    default: {}
   }
 }, {
   timestamps: true

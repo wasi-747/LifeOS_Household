@@ -77,19 +77,16 @@ interface DeviceUsage {
   usagePercent: number;
 }
 
+interface UtilitySplitRule {
+  mode: "equal" | "weighted" | "surcharge" | "fixed";
+  customValues?: { [userId: string]: number };
+}
+
 interface MonthlyBillConfig {
+  _id?: string;
   monthId: string;
   rent: { [userId: string]: number };
-  utilities: {
-    wifi: number;
-    electricity: number;
-    gas: number;
-    garbage: number;
-    bashaUti: number;
-    pani: number;
-    bua: number;
-    extra: number;
-  };
+  utilities: { [key: string]: number };
   adjustments: Array<{
     user: string;
     prevUtilityDue: number;
@@ -99,7 +96,67 @@ interface MonthlyBillConfig {
     note?: string;
   }>;
   utilityNotes?: { [key: string]: string };
+  utilitySplitRules?: { [key: string]: UtilitySplitRule };
 }
+
+const computePreviewShares = (
+  totalBill: number,
+  mode: string,
+  customVals: { [uid: string]: number },
+  users: Array<{ userId: string; name: string }>,
+) => {
+  if (totalBill <= 0 || !users.length) return {};
+  const res: { [uid: string]: number } = {};
+
+  if (mode === "weighted") {
+    let totalW = 0;
+    const weights: { [uid: string]: number } = {};
+    users.forEach((u) => {
+      const w = parseFloat(customVals[u.userId] as any) > 0 ? parseFloat(customVals[u.userId] as any) : 1;
+      weights[u.userId] = w;
+      totalW += w;
+    });
+    users.forEach((u) => {
+      res[u.userId] = totalW > 0 ? totalBill * (weights[u.userId] / totalW) : totalBill / users.length;
+    });
+  } else if (mode === "surcharge") {
+    let totalS = 0;
+    users.forEach((u) => {
+      totalS += parseFloat(customVals[u.userId] as any) || 0;
+    });
+    const remaining = Math.max(0, totalBill - totalS);
+    const base = remaining / users.length;
+    users.forEach((u) => {
+      res[u.userId] = base + (parseFloat(customVals[u.userId] as any) || 0);
+    });
+  } else if (mode === "fixed") {
+    let totalFixed = 0;
+    const fixedU: string[] = [];
+    const nonFixedU: string[] = [];
+    users.forEach((u) => {
+      const val = customVals[u.userId];
+      if (val !== undefined && val !== null && (val as any) !== "") {
+        totalFixed += parseFloat(val as any) || 0;
+        fixedU.push(u.userId);
+      } else {
+        nonFixedU.push(u.userId);
+      }
+    });
+    const remaining = Math.max(0, totalBill - totalFixed);
+    const remShare = nonFixedU.length > 0 ? remaining / nonFixedU.length : 0;
+    fixedU.forEach((uid) => {
+      res[uid] = parseFloat(customVals[uid] as any) || 0;
+    });
+    nonFixedU.forEach((uid) => {
+      res[uid] = remShare;
+    });
+  } else {
+    users.forEach((u) => {
+      res[u.userId] = totalBill / users.length;
+    });
+  }
+  return res;
+};
 
 interface WalletTransfer {
   _id: string;
@@ -230,6 +287,7 @@ export default function Dashboard() {
 
   const [isConfigModalOpen, setIsConfigModalOpen] = useState<boolean>(false);
   const [billConfig, setBillConfig] = useState<MonthlyBillConfig | null>(null);
+  const [expandedSplitUtil, setExpandedSplitUtil] = useState<string | null>(null);
 
   // Dynamic Month States
   const [availableMonths, setAvailableMonths] = useState<string[]>([
@@ -4148,50 +4206,79 @@ export default function Dashboard() {
                           garbage: "Garbage Collection",
                           bashaUti: "Building Maintenance",
                           pani: "Water Supply (Pani)",
-                          bua: "Housekeeper / Maid (Bua)",
-                          extra: "Misc / Extra",
+                          bua: "Cook / Maid (Bua)",
+                          extra: "Miscellaneous Extra",
                         };
                         return (
                           labels[k] || k.charAt(0).toUpperCase() + k.slice(1)
                         );
                       };
+
+                      const currentRule = billConfig.utilitySplitRules?.[utilKey] || {
+                        mode: "equal",
+                        customValues: {},
+                      };
+                      const isExpanded = expandedSplitUtil === utilKey;
+
+                      const previewShares = computePreviewShares(
+                        val,
+                        currentRule.mode,
+                        currentRule.customValues || {},
+                        summaryData?.userStandings || [],
+                      );
+
                       return (
                         <div
                           key={utilKey}
-                          className="space-y-1 border-b border-slate-800/40 pb-2 last:border-b-0"
+                          className="p-3 bg-slate-900 border border-slate-800 rounded-xl space-y-2"
                         >
                           <div className="flex justify-between items-center gap-2">
-                            <div className="flex items-center gap-1 min-w-0">
-                              <label
-                                className="text-xs text-slate-300 font-medium truncate"
-                                title={getCategoryLabel(utilKey)}
-                              >
-                                {getCategoryLabel(utilKey)}
-                              </label>
-                              {hasPermission && (
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    const updatedUtils = {
-                                      ...billConfig.utilities,
-                                    };
-                                    delete (updatedUtils as any)[utilKey];
-                                    const updatedNotes = {
-                                      ...(billConfig.utilityNotes || {}),
-                                    };
-                                    delete (updatedNotes as any)[utilKey];
-                                    setBillConfig({
-                                      ...billConfig,
-                                      utilities: updatedUtils,
-                                      utilityNotes: updatedNotes,
-                                    });
-                                  }}
-                                  className="text-slate-500 hover:text-rose-450 p-0.5 rounded cursor-pointer shrink-0 transition-colors"
-                                  title={`Delete category ${getCategoryLabel(utilKey)}`}
-                                >
-                                  <Trash2 size={12} />
-                                </button>
+                            <div className="flex items-center gap-1.5 font-medium text-xs text-white">
+                              <span>{getCategoryLabel(utilKey)}</span>
+                              {currentRule.mode !== "equal" && (
+                                <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 uppercase">
+                                  {currentRule.mode}
+                                </span>
                               )}
+                              {hasPermission &&
+                                ![
+                                  "wifi",
+                                  "electricity",
+                                  "gas",
+                                  "garbage",
+                                  "bashaUti",
+                                  "pani",
+                                  "bua",
+                                  "extra",
+                                ].includes(utilKey) && (
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      const updatedUtils = {
+                                        ...billConfig.utilities,
+                                      };
+                                      delete (updatedUtils as any)[utilKey];
+                                      const updatedNotes = {
+                                        ...(billConfig.utilityNotes || {}),
+                                      };
+                                      delete (updatedNotes as any)[utilKey];
+                                      const updatedRules = {
+                                        ...(billConfig.utilitySplitRules || {}),
+                                      };
+                                      delete (updatedRules as any)[utilKey];
+                                      setBillConfig({
+                                        ...billConfig,
+                                        utilities: updatedUtils,
+                                        utilityNotes: updatedNotes,
+                                        utilitySplitRules: updatedRules,
+                                      });
+                                    }}
+                                    className="text-slate-500 hover:text-rose-450 p-0.5 rounded cursor-pointer shrink-0 transition-colors"
+                                    title={`Delete category ${getCategoryLabel(utilKey)}`}
+                                  >
+                                    <Trash2 size={12} />
+                                  </button>
+                                )}
                             </div>
                             <div className="flex items-center shrink-0">
                               <span className="text-[10px] text-slate-500 mr-1">
@@ -4214,21 +4301,160 @@ export default function Dashboard() {
                               />
                             </div>
                           </div>
-                          <input
-                            type="text"
-                            placeholder="Add memo (e.g. Paid directly)"
-                            value={billConfig.utilityNotes?.[utilKey] || ""}
-                            onChange={(e) =>
-                              setBillConfig({
-                                ...billConfig,
-                                utilityNotes: {
-                                  ...(billConfig.utilityNotes || {}),
-                                  [utilKey]: e.target.value,
-                                },
-                              })
-                            }
-                            className="bg-slate-950/60 border border-slate-850 rounded px-2 py-1 w-full focus:outline-none text-[10px] text-slate-350 italic text-white"
-                          />
+
+                          <div className="flex items-center gap-2">
+                            <input
+                              type="text"
+                              placeholder="Add memo (e.g. Paid directly)"
+                              value={billConfig.utilityNotes?.[utilKey] || ""}
+                              onChange={(e) =>
+                                setBillConfig({
+                                  ...billConfig,
+                                  utilityNotes: {
+                                    ...(billConfig.utilityNotes || {}),
+                                    [utilKey]: e.target.value,
+                                  },
+                                })
+                              }
+                              className="bg-slate-950/60 border border-slate-850 rounded px-2 py-1 w-full focus:outline-none text-[10px] text-slate-350 italic text-white"
+                            />
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setExpandedSplitUtil(
+                                  isExpanded ? null : utilKey,
+                                )
+                              }
+                              className={`text-[10px] font-bold px-2 py-1 rounded-lg border transition-all cursor-pointer shrink-0 flex items-center gap-1 ${
+                                isExpanded || currentRule.mode !== "equal"
+                                  ? "bg-indigo-600/20 text-indigo-300 border-indigo-500/40"
+                                  : "bg-slate-800/80 text-slate-400 border-slate-700 hover:text-white"
+                              }`}
+                              title="Configure custom formula/split rules for this utility"
+                            >
+                              <Sliders size={11} />
+                              <span>Formula</span>
+                            </button>
+                          </div>
+
+                          {/* Expanded Custom Split Engine Box */}
+                          {isExpanded && (
+                            <div className="p-3 bg-slate-950/90 border border-indigo-900/40 rounded-xl space-y-3 mt-2 text-xs animate-fade-in">
+                              <div className="flex justify-between items-center">
+                                <span className="font-bold text-indigo-300 text-[11px] flex items-center gap-1">
+                                  <Sliders size={12} /> Custom Formula: {getCategoryLabel(utilKey)}
+                                </span>
+                                <span className="text-[10px] text-slate-400">
+                                  Total: ৳{val}
+                                </span>
+                              </div>
+
+                              <div className="space-y-1">
+                                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
+                                  Split Mode Formula:
+                                </label>
+                                <select
+                                  value={currentRule.mode}
+                                  onChange={(e) => {
+                                    const newMode = e.target.value as any;
+                                    const updatedRules = {
+                                      ...(billConfig.utilitySplitRules || {}),
+                                      [utilKey]: {
+                                        mode: newMode,
+                                        customValues:
+                                          currentRule.customValues || {},
+                                      },
+                                    };
+                                    setBillConfig({
+                                      ...billConfig,
+                                      utilitySplitRules: updatedRules,
+                                    });
+                                  }}
+                                  className="w-full bg-slate-900 border border-slate-800 rounded-lg p-1.5 text-xs text-slate-200 focus:outline-none focus:border-indigo-500"
+                                >
+                                  <option value="equal">Equal Split (Total ÷ Roommates)</option>
+                                  <option value="weighted">Weighted Shares (e.g., 3:2:2:2 for High-End PC)</option>
+                                  <option value="surcharge">Extra Surcharge (+৳ Offset for PC/AC)</option>
+                                  <option value="fixed">Fixed Amount (Roommate pays fixed ৳)</option>
+                                </select>
+                              </div>
+
+                              <p className="text-[10px] text-slate-400 bg-indigo-950/30 p-2 rounded-lg border border-indigo-900/20 leading-relaxed">
+                                {currentRule.mode === "weighted" && "💡 Assign share weights (e.g. 3 for PC user, 2 for others). Bill is split proportionally."}
+                                {currentRule.mode === "surcharge" && "💡 Enter extra +৳ surcharge for high-usage roommates (PC/AC). Surcharges are added after splitting remaining bill equally."}
+                                {currentRule.mode === "fixed" && "💡 Enter fixed ৳ amount for specific roommates. Remaining bill is divided among other roommates."}
+                                {currentRule.mode === "equal" && "💡 Standard equal split among all room members."}
+                              </p>
+
+                              {currentRule.mode !== "equal" && (
+                                <div className="space-y-2 pt-1 border-t border-slate-850">
+                                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
+                                    Roommate Formula Shares & Live Breakdown:
+                                  </span>
+                                  {summaryData?.userStandings.map((u) => {
+                                    const customVal =
+                                      currentRule.customValues?.[u.userId] ??
+                                      (currentRule.mode === "weighted" ? 1 : 0);
+                                    const shareVal = previewShares[u.userId] || 0;
+
+                                    return (
+                                      <div
+                                        key={u.userId}
+                                        className="flex items-center justify-between gap-2 p-1.5 rounded-lg bg-slate-900/60 border border-slate-800 text-[11px]"
+                                      >
+                                        <span className="font-medium text-slate-200 truncate max-w-[100px]">
+                                          {u.name}
+                                        </span>
+                                        <div className="flex items-center gap-2">
+                                          <div className="flex items-center gap-1">
+                                            <span className="text-[9px] text-slate-400">
+                                              {currentRule.mode === "weighted"
+                                                ? "Shares:"
+                                                : currentRule.mode === "surcharge"
+                                                ? "+৳:"
+                                                : "Fixed ৳:"}
+                                            </span>
+                                            <input
+                                              type="number"
+                                              value={customVal}
+                                              onChange={(e) => {
+                                                const newVal =
+                                                  parseFloat(e.target.value) || 0;
+                                                const updatedVals = {
+                                                  ...(currentRule.customValues ||
+                                                    {}),
+                                                  [u.userId]: newVal,
+                                                };
+                                                const updatedRules = {
+                                                  ...(billConfig.utilitySplitRules ||
+                                                    {}),
+                                                  [utilKey]: {
+                                                    mode: currentRule.mode,
+                                                    customValues: updatedVals,
+                                                  },
+                                                };
+                                                setBillConfig({
+                                                  ...billConfig,
+                                                  utilitySplitRules: updatedRules,
+                                                });
+                                              }}
+                                              className="bg-slate-950 border border-slate-800 rounded px-1.5 py-0.5 w-16 text-right text-xs text-indigo-300 font-bold focus:outline-none focus:border-indigo-500"
+                                            />
+                                          </div>
+                                          <span className="text-[10px] font-bold text-emerald-400 bg-emerald-950/40 px-1.5 py-0.5 rounded border border-emerald-900/40">
+                                            ৳
+                                            {shareVal % 1 === 0
+                                              ? shareVal.toFixed(0)
+                                              : shareVal.toFixed(1)}
+                                          </span>
+                                        </div>
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                              )}
+                            </div>
+                          )}
                         </div>
                       );
                     })}

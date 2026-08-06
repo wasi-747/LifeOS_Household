@@ -158,6 +158,103 @@ exports.getSummary = async (req, res) => {
 
     const totalLogsCount = telemetries.length;
 
+    // Calculate individual utility shares based on custom split rules per utility item
+    const calculateUserUtilityShares = (utilities, splitRules, usersList) => {
+      const sharesMap = new Map();
+      usersList.forEach(u => sharesMap.set(u._id.toString(), 0));
+
+      if (!utilities || usersList.length === 0) return sharesMap;
+
+      const utilEntries = utilities instanceof Map ? Array.from(utilities.entries()) : Object.entries(utilities);
+
+      utilEntries.forEach(([key, val]) => {
+        const billAmount = parseFloat(val) || 0;
+        if (billAmount <= 0) return;
+
+        let rule = null;
+        if (splitRules) {
+          if (splitRules instanceof Map) {
+            rule = splitRules.get(key);
+          } else if (typeof splitRules === 'object') {
+            rule = splitRules[key];
+          }
+        }
+
+        const mode = rule && rule.mode ? rule.mode : 'equal';
+        const customValObj = rule && rule.customValues ? (rule.customValues instanceof Map ? Object.fromEntries(rule.customValues) : rule.customValues) : {};
+
+        if (mode === 'weighted') {
+          let totalWeight = 0;
+          const userWeights = {};
+          usersList.forEach(u => {
+            const uid = u._id.toString();
+            const w = parseFloat(customValObj[uid]) > 0 ? parseFloat(customValObj[uid]) : 1;
+            userWeights[uid] = w;
+            totalWeight += w;
+          });
+
+          usersList.forEach(u => {
+            const uid = u._id.toString();
+            const userShare = totalWeight > 0 ? (billAmount * (userWeights[uid] / totalWeight)) : (billAmount / usersList.length);
+            sharesMap.set(uid, sharesMap.get(uid) + userShare);
+          });
+        } else if (mode === 'surcharge') {
+          let totalSurcharges = 0;
+          const userSurcharges = {};
+          usersList.forEach(u => {
+            const uid = u._id.toString();
+            const s = parseFloat(customValObj[uid]) || 0;
+            userSurcharges[uid] = s;
+            totalSurcharges += s;
+          });
+
+          const remainingAmount = Math.max(0, billAmount - totalSurcharges);
+          const baseShare = remainingAmount / usersList.length;
+
+          usersList.forEach(u => {
+            const uid = u._id.toString();
+            const userShare = baseShare + (userSurcharges[uid] || 0);
+            sharesMap.set(uid, sharesMap.get(uid) + userShare);
+          });
+        } else if (mode === 'fixed') {
+          let totalFixed = 0;
+          const fixedUsers = [];
+          const nonFixedUsers = [];
+
+          usersList.forEach(u => {
+            const uid = u._id.toString();
+            if (customValObj[uid] !== undefined && customValObj[uid] !== null && customValObj[uid] !== '') {
+              const f = parseFloat(customValObj[uid]) || 0;
+              totalFixed += f;
+              fixedUsers.push({ uid, amount: f });
+            } else {
+              nonFixedUsers.push(uid);
+            }
+          });
+
+          const remainingAmount = Math.max(0, billAmount - totalFixed);
+          const remainingShare = nonFixedUsers.length > 0 ? (remainingAmount / nonFixedUsers.length) : 0;
+
+          fixedUsers.forEach(item => {
+            sharesMap.set(item.uid, sharesMap.get(item.uid) + item.amount);
+          });
+          nonFixedUsers.forEach(uid => {
+            sharesMap.set(uid, sharesMap.get(uid) + remainingShare);
+          });
+        } else {
+          const equalShare = billAmount / usersList.length;
+          usersList.forEach(u => {
+            const uid = u._id.toString();
+            sharesMap.set(uid, sharesMap.get(uid) + equalShare);
+          });
+        }
+      });
+
+      return sharesMap;
+    };
+
+    const utilitySharesMap = calculateUserUtilityShares(monthlyBill.utilities, monthlyBill.utilitySplitRules, users);
+
     // 6. Calculate standings for each user
     const userStandings = users.map(user => {
       const userIdStr = user._id.toString();
@@ -187,8 +284,8 @@ exports.getSummary = async (req, res) => {
       // Rent Portion
       const rentPortion = monthlyBill.rent.get(userIdStr) || 0;
 
-      // Utility share and portion
-      const utilityShare = totalUtilities / users.length;
+      // Utility share computed via custom rules per utility
+      const utilityShare = utilitySharesMap.get(userIdStr) || 0;
       const utilityPortion = prevUtilityDue + utilityShare - utilityPayment;
 
       // User's Telemetry Log count
