@@ -10,10 +10,15 @@ const createTransporter = () => {
   const pass = (process.env.EMAIL_PASS || "lqnzjlbbiaxyrvvz").replace(/\s+/g, "");
 
   return nodemailer.createTransport({
-    service: "gmail",
+    host: "smtp.gmail.com",
+    port: 465,
+    secure: true,
     auth: {
       user,
       pass,
+    },
+    tls: {
+      rejectUnauthorized: false,
     },
   });
 };
