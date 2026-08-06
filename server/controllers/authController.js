@@ -10,16 +10,11 @@ const createTransporter = () => {
   const pass = (process.env.EMAIL_PASS || "lqnzjlbbiaxyrvvz").replace(/\s+/g, "");
 
   return nodemailer.createTransport({
-    host: "smtp.gmail.com",
-    port: 465,
-    secure: true, // use SSL
+    service: "gmail",
     auth: {
       user,
       pass,
     },
-    connectionTimeout: 10000,
-    greetingTimeout: 10000,
-    socketTimeout: 15000,
   });
 };
 
@@ -242,7 +237,7 @@ exports.forgotPassword = async (req, res) => {
     console.error("Forgot password error:", error);
     return res
       .status(500)
-      .json({ error: "Failed to send reset email. Please try again." });
+      .json({ error: error.message || "Failed to send reset email. Please try again." });
   }
 };
 
