@@ -525,7 +525,7 @@ export default function Auth({ onAuthSuccess }: AuthProps) {
                   />
                 </div>
 
-                <div className="flex justify-between items-center pt-2">
+                <div className="flex justify-between items-center text-xs pt-1">
                   <button
                     type="button"
                     onClick={() => setResetStep(1)}
@@ -535,9 +535,31 @@ export default function Auth({ onAuthSuccess }: AuthProps) {
                     <span>Back</span>
                   </button>
                   <button
+                    type="button"
+                    onClick={async () => {
+                      setResetLoading(true);
+                      setResetError(null);
+                      try {
+                        await api.post('/auth/forgot-password', { emailOrNickname: resetEmail });
+                        setResetOtpInput('');
+                      } catch (err: any) {
+                        setResetError(err.response?.data?.error || 'Failed to resend code.');
+                      } finally {
+                        setResetLoading(false);
+                      }
+                    }}
+                    disabled={resetLoading}
+                    className="text-[#E38D73] hover:text-[#F2A38A] font-semibold cursor-pointer bg-transparent border-none text-xs"
+                  >
+                    Resend New Key
+                  </button>
+                </div>
+
+                <div className="flex justify-end pt-2">
+                  <button
                     type="submit"
                     disabled={resetLoading || resetOtpInput.length < 6}
-                    className="bg-[#E38D73] hover:bg-[#F2A38A] disabled:opacity-50 text-[#1C1512] font-bold text-xs px-5 py-2.5 rounded-xl shadow-md transition-all cursor-pointer flex items-center gap-2"
+                    className="w-full bg-[#E38D73] hover:bg-[#F2A38A] disabled:opacity-50 text-[#1C1512] font-bold text-xs py-3 rounded-xl shadow-md transition-all cursor-pointer flex items-center justify-center gap-2"
                   >
                     {resetLoading ? <Loader2 size={14} className="animate-spin text-[#1C1512]" /> : null}
                     <span>Verify Key →</span>
