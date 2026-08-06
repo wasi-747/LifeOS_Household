@@ -326,6 +326,12 @@ export default function Dashboard() {
   // Dynamic Home details
   const [homeName, setHomeName] = useState<string>("Sweet Home");
   const [homeData, setHomeData] = useState<any>(null);
+  const [isHomeSettingsOpen, setIsHomeSettingsOpen] = useState<boolean>(false);
+  const [editHomeName, setEditHomeName] = useState<string>("");
+  const [editHomeCurrency, setEditHomeCurrency] = useState<string>("৳");
+  const [savingHomeSettings, setSavingHomeSettings] = useState<boolean>(false);
+
+  const currencySymbol = homeData?.currency || "৳";
 
   const fetchHomeDetails = async () => {
     try {
@@ -333,9 +339,38 @@ export default function Dashboard() {
       if (response.data.home) {
         setHomeData(response.data.home);
         setHomeName(response.data.home.name);
+        setEditHomeName(response.data.home.name);
+        if (response.data.home.currency) {
+          setEditHomeCurrency(response.data.home.currency);
+        }
       }
     } catch (err) {
       console.error("Error fetching home details:", err);
+    }
+  };
+
+  const handleSaveHomeSettings = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSavingHomeSettings(true);
+    try {
+      const res = await api.put("/home/settings", {
+        name: editHomeName,
+        currency: editHomeCurrency,
+      });
+      if (res.data.home) {
+        setHomeData(res.data.home);
+        setHomeName(res.data.home.name);
+      }
+      setIsHomeSettingsOpen(false);
+      showAlert("Success", "Household settings updated successfully!");
+    } catch (err: any) {
+      console.error("Error updating home settings:", err);
+      showAlert(
+        "Error",
+        err.response?.data?.error || "Failed to update home settings.",
+      );
+    } finally {
+      setSavingHomeSettings(false);
     }
   };
 
@@ -2029,6 +2064,15 @@ export default function Dashboard() {
               <span className="text-xs font-bold text-slate-450 uppercase tracking-widest">
                 {homeName}
               </span>
+              {currentUser?.role === "admin" && (
+                <button
+                  onClick={() => setIsHomeSettingsOpen(true)}
+                  className="p-1 hover:bg-slate-800 rounded-md text-slate-400 hover:text-indigo-400 transition-colors cursor-pointer"
+                  title="Household Settings & Currency"
+                >
+                  <Sliders size={13} />
+                </button>
+              )}
             </div>
 
             <div className="flex items-center gap-2 text-slate-300">
@@ -3852,11 +3896,16 @@ export default function Dashboard() {
                             <div className="absolute top-0 right-0 p-3 text-indigo-500/10">
                               <DollarSign size={80} />
                             </div>
-                            <span className="text-xs font-semibold text-slate-400 uppercase">
-                              Groceries & Bazar Costs
-                            </span>
+                            <div className="flex items-center justify-between">
+                              <span className="text-xs font-semibold text-slate-400 uppercase">
+                                Groceries & Bazar Costs
+                              </span>
+                              <span title="Total combined grocery purchases logged this month across all roommates.">
+                                <HelpCircle size={13} className="text-slate-500 hover:text-slate-300 cursor-pointer" />
+                              </span>
+                            </div>
                             <h3 className="text-2xl font-bold mt-2">
-                              ৳{summaryData.totalMealCost.toFixed(2)}
+                              {currencySymbol}{summaryData.totalMealCost.toFixed(2)}
                             </h3>
                             <div className="flex items-center gap-1.5 text-xs text-indigo-400 mt-2 font-medium">
                               <TrendingUp size={14} />
@@ -3884,11 +3933,16 @@ export default function Dashboard() {
                             <div className="absolute top-0 right-0 p-3 text-amber-500/10">
                               <TrendingUp size={80} />
                             </div>
-                            <span className="text-xs font-semibold text-slate-400 uppercase">
-                              Today's Meal Rate
-                            </span>
+                            <div className="flex items-center justify-between">
+                              <span className="text-xs font-semibold text-slate-400 uppercase">
+                                Today's Meal Rate
+                              </span>
+                              <span title="Meal Rate = Total Grocery Costs ÷ Total Meals Eaten. Defines per-meal cost for each roommate.">
+                                <HelpCircle size={13} className="text-slate-500 hover:text-slate-300 cursor-pointer" />
+                              </span>
+                            </div>
                             <h3 className="text-2xl font-bold mt-2 text-amber-400">
-                              ৳{summaryData.mealRate.toFixed(2)}{" "}
+                              {currencySymbol}{summaryData.mealRate.toFixed(2)}{" "}
                               <span className="text-xs text-slate-500 font-normal">
                                 / meal
                               </span>
@@ -3936,12 +3990,16 @@ export default function Dashboard() {
                       className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl space-y-6"
                     >
                       <div>
-                        <h3 className="font-bold text-lg text-white">
-                          Roommate Standing Statement
-                        </h3>
+                        <div className="flex items-center gap-2">
+                          <h3 className="font-bold text-lg text-white">
+                            Roommate Standing Statement
+                          </h3>
+                          <span title="Final Balance = Food Balance + Utility Balance + Rent Balance. Positive (+) means refund is owed to the roommate; Negative (-) means roommate owes money.">
+                            <HelpCircle size={15} className="text-slate-400 hover:text-slate-200 cursor-pointer" />
+                          </span>
+                        </div>
                         <p className="text-xs text-slate-400">
-                          Detailed list of calculations used to determine final
-                          standings.
+                          Detailed breakdown of individual roommate balances and calculated final standings.
                         </p>
                       </div>
 
@@ -3969,8 +4027,11 @@ export default function Dashboard() {
                               <th className="py-4 px-3 text-right text-indigo-400">
                                 Rent Due
                               </th>
-                              <th className="py-4 px-3 text-right">
-                                Final Due
+                              <th className="py-4 px-3 text-right flex items-center justify-end gap-1">
+                                <span>Final Due</span>
+                                <span title="Positive (+) = Refund due to roommate | Negative (-) = Roommate owes household">
+                                  <HelpCircle size={12} className="text-slate-500 hover:text-slate-300 cursor-pointer" />
+                                </span>
                               </th>
                             </tr>
                           </thead>
@@ -3978,8 +4039,8 @@ export default function Dashboard() {
                             {summaryData.userStandings.map((user) => {
                               const isOwed = user.finalDue < 0;
                               const formattedStanding = isOwed
-                                ? `+৳${Math.abs(user.finalDue).toFixed(2)} (Refund)`
-                                : `৳${user.finalDue.toFixed(2)} (Owes)`;
+                                ? `+${currencySymbol}${Math.abs(user.finalDue).toFixed(2)} (Refund)`
+                                : `${currencySymbol}${user.finalDue.toFixed(2)} (Owes)`;
 
                               return (
                                 <tr
@@ -4017,25 +4078,25 @@ export default function Dashboard() {
                                   </td>
                                   <td className="py-5 px-3 text-right font-medium text-slate-300">
                                     <div>
-                                      ৳{user.mealCostPortion.toFixed(2)}
+                                      {currencySymbol}{user.mealCostPortion.toFixed(2)}
                                     </div>
                                     {user.prevMealDue !== 0 && (
                                       <span className="text-[10px] text-slate-500 block">
                                         Prev: {user.prevMealDue >= 0 ? "+" : ""}
-                                        ৳{user.prevMealDue.toFixed(0)}
+                                        {currencySymbol}{user.prevMealDue.toFixed(0)}
                                       </span>
                                     )}
                                   </td>
                                   <td className="py-5 px-3 text-right font-semibold text-emerald-400">
-                                    ৳{user.totalDeposits.toFixed(2)}
+                                    {currencySymbol}{user.totalDeposits.toFixed(2)}
                                   </td>
                                   <td className="py-5 px-3 text-right font-semibold text-orange-400">
-                                    <div>৳{user.walletSpent.toFixed(2)}</div>
+                                    <div>{currencySymbol}{user.walletSpent.toFixed(2)}</div>
                                     {user.walletGiven !== 0 ||
                                     user.walletReceived !== 0 ? (
                                       <span className="text-[10px] text-slate-500 block leading-tight">
-                                        Given: ৳{user.walletGiven.toFixed(0)} |
-                                        Recv: ৳{user.walletReceived.toFixed(0)}
+                                        Given: {currencySymbol}{user.walletGiven.toFixed(0)} |
+                                        Recv: {currencySymbol}{user.walletReceived.toFixed(0)}
                                         <br />
                                         Net:{" "}
                                         {user.walletGiven -
@@ -4043,41 +4104,41 @@ export default function Dashboard() {
                                         0
                                           ? "+"
                                           : ""}
-                                        ৳{(user.netBazarPaid || 0).toFixed(0)}
+                                        {currencySymbol}{(user.netBazarPaid || 0).toFixed(0)}
                                       </span>
                                     ) : null}
                                   </td>
                                   <td
                                     className={`py-5 px-3 text-right font-bold ${user.foodDue > 0 ? "text-rose-450" : "text-emerald-400"}`}
                                   >
-                                    {user.foodDue >= 0 ? "" : "+"}৳
+                                    {user.foodDue >= 0 ? "" : "+"}{currencySymbol}
                                     {Math.abs(user.foodDue).toFixed(2)}
                                   </td>
                                   <td className="py-5 px-3 text-right font-medium text-slate-300">
                                     <div
                                       className={`font-bold ${user.utilityDue > 0 ? "text-rose-450" : "text-emerald-400"}`}
                                     >
-                                      {user.utilityDue >= 0 ? "" : "+"}৳
+                                      {user.utilityDue >= 0 ? "" : "+"}{currencySymbol}
                                       {Math.abs(user.utilityDue).toFixed(2)}
                                     </div>
                                     <span className="text-[10px] text-slate-500 block leading-tight">
-                                      Share: ৳{user.utilityShare.toFixed(0)} |
+                                      Share: {currencySymbol}{user.utilityShare.toFixed(0)} |
                                       Prev:{" "}
-                                      {user.prevUtilityDue >= 0 ? "+" : ""}৳
+                                      {user.prevUtilityDue >= 0 ? "+" : ""}{currencySymbol}
                                       {user.prevUtilityDue.toFixed(0)}
                                       <br />
-                                      Paid: -৳{user.utilityPayment.toFixed(0)}
+                                      Paid: -{currencySymbol}{user.utilityPayment.toFixed(0)}
                                     </span>
                                   </td>
                                   <td className="py-5 px-3 text-right font-medium text-slate-300">
                                     <div
                                       className={`font-bold ${user.rentDue > 0 ? "text-rose-450" : "text-indigo-300"}`}
                                     >
-                                      ৳{user.rentDue.toFixed(2)}
+                                      {currencySymbol}{user.rentDue.toFixed(2)}
                                     </div>
                                     <span className="text-[10px] text-slate-500 block leading-tight">
-                                      Rent: ৳{user.rentPortion.toFixed(0)} |
-                                      Paid: -৳
+                                      Rent: {currencySymbol}{user.rentPortion.toFixed(0)} |
+                                      Paid: -{currencySymbol}
                                       {(user.rentPayment || 0).toFixed(0)}
                                     </span>
                                   </td>
@@ -4111,14 +4172,14 @@ export default function Dashboard() {
                       </div>
                       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
                         {[
-                          { key: "wifi", label: "WiFi" },
+                          { key: "wifi", label: "WiFi Internet" },
                           { key: "electricity", label: "Electricity" },
-                          { key: "gas", label: "Gas" },
-                          { key: "garbage", label: "Garbage" },
-                          { key: "bashaUti", label: "Home Utility" },
-                          { key: "pani", label: "Water (Pani)" },
-                          { key: "bua", label: "Maid (Bua)" },
-                          { key: "extra", label: "Extra" },
+                          { key: "gas", label: "Gas / Fuel" },
+                          { key: "garbage", label: "Garbage Collection" },
+                          { key: "bashaUti", label: "Building Maintenance" },
+                          { key: "pani", label: "Water Supply (Pani)" },
+                          { key: "bua", label: "Housekeeper / Maid (Bua)" },
+                          { key: "extra", label: "Misc / Extra" },
                         ].map((util) => {
                           const val =
                             (summaryData.monthlyBill?.utilities as any)?.[
@@ -4136,7 +4197,7 @@ export default function Dashboard() {
                               <div className="flex justify-between items-center text-xs font-bold text-white">
                                 <span>{util.label}</span>
                                 <span className="text-indigo-400">
-                                  ৳{val.toFixed(2)}
+                                  {currencySymbol}{val.toFixed(2)}
                                 </span>
                               </div>
                               {noteText && (
@@ -4700,14 +4761,14 @@ export default function Dashboard() {
                         );
                       const getCategoryLabel = (k: string) => {
                         const labels: any = {
-                          wifi: "WiFi",
+                          wifi: "WiFi Internet",
                           electricity: "Electricity",
-                          gas: "Gas",
-                          garbage: "Garbage",
-                          bashaUti: "Home Utility (Basha)",
-                          pani: "Pani",
-                          bua: "Bua",
-                          extra: "Extra",
+                          gas: "Gas / Fuel",
+                          garbage: "Garbage Collection",
+                          bashaUti: "Building Maintenance",
+                          pani: "Water Supply (Pani)",
+                          bua: "Housekeeper / Maid (Bua)",
+                          extra: "Misc / Extra",
                         };
                         return (
                           labels[k] || k.charAt(0).toUpperCase() + k.slice(1)
@@ -5083,6 +5144,76 @@ export default function Dashboard() {
           setConfirmDialog((prev) => ({ ...prev, isOpen: false }))
         }
       />
+
+      {/* Household Settings Modal */}
+      {isHomeSettingsOpen && (
+        <div className="fixed inset-0 bg-slate-950/75 backdrop-blur-md flex items-center justify-center z-50 p-4">
+          <div className="bg-slate-900 border border-slate-800 w-full max-w-md rounded-2xl p-6 shadow-2xl space-y-6">
+            <div>
+              <h3 className="text-xl font-bold text-white font-serif">
+                Household Settings
+              </h3>
+              <p className="text-slate-400 text-xs mt-0.5">
+                Customize your household name and preferred currency symbol.
+              </p>
+            </div>
+
+            <form onSubmit={handleSaveHomeSettings} className="space-y-4">
+              <div className="space-y-1">
+                <label className="text-[10px] text-slate-400 uppercase font-bold tracking-wider">
+                  Household Name
+                </label>
+                <input
+                  type="text"
+                  value={editHomeName}
+                  onChange={(e) => setEditHomeName(e.target.value)}
+                  className="bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 w-full text-xs text-white focus:outline-none focus:border-indigo-500 font-medium"
+                  required
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-[10px] text-slate-400 uppercase font-bold tracking-wider">
+                  Preferred Currency
+                </label>
+                <select
+                  value={editHomeCurrency}
+                  onChange={(e) => setEditHomeCurrency(e.target.value)}
+                  className="bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 w-full text-xs text-white focus:outline-none focus:border-indigo-500 font-medium cursor-pointer"
+                >
+                  <option value="৳">৳ (BDT - Taka)</option>
+                  <option value="$">$ (USD - Dollar)</option>
+                  <option value="€">€ (EUR - Euro)</option>
+                  <option value="£">£ (GBP - Pound)</option>
+                  <option value="₹">₹ (INR - Rupee)</option>
+                  <option value="C$">C$ (CAD - Canadian Dollar)</option>
+                  <option value="A$">A$ (AUD - Australian Dollar)</option>
+                </select>
+              </div>
+
+              <div className="flex justify-end gap-3 border-t border-slate-800 pt-4">
+                <button
+                  type="button"
+                  onClick={() => setIsHomeSettingsOpen(false)}
+                  className="bg-slate-800 hover:bg-slate-750 text-xs font-semibold text-slate-350 px-4 py-2 rounded-xl transition-all cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={savingHomeSettings}
+                  className="bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-xs font-bold text-white px-5 py-2 rounded-xl shadow-lg transition-all cursor-pointer flex items-center gap-1.5"
+                >
+                  {savingHomeSettings && (
+                    <Loader2 size={13} className="animate-spin" />
+                  )}
+                  <span>Save Settings</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       {/* Device Consent Modal */}
       {showConsentModal && (

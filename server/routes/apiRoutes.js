@@ -35,6 +35,11 @@ router.post(
   authMiddleware,
   homeController.updatePermission,
 );
+router.put(
+  "/home/settings",
+  authMiddleware,
+  homeController.updateHomeSettings,
+);
 
 // Protected Device Tracking Endpoints
 router.post(

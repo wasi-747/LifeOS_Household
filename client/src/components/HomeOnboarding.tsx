@@ -11,6 +11,7 @@ interface HomeOnboardingProps {
 
 export default function HomeOnboarding({ user, onHomeCreated, onLogout }: HomeOnboardingProps) {
   const [homeName, setHomeName] = useState<string>('');
+  const [currency, setCurrency] = useState<string>('৳');
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -49,7 +50,7 @@ export default function HomeOnboarding({ user, onHomeCreated, onLogout }: HomeOn
     setError(null);
 
     try {
-      const response = await api.post('/home/create', { name: homeName });
+      const response = await api.post('/home/create', { name: homeName, currency });
       onHomeCreated(response.data.home._id);
     } catch (err: any) {
       console.error('Create home error:', err);
@@ -125,10 +126,28 @@ export default function HomeOnboarding({ user, onHomeCreated, onLogout }: HomeOn
                   required
                 />
               </div>
+
+              <div className="space-y-1">
+                <label className="text-[9px] uppercase font-bold tracking-wider text-[#A69788]">Preferred Currency</label>
+                <select
+                  value={currency}
+                  onChange={(e) => setCurrency(e.target.value)}
+                  className="bg-[#1C1512] border border-[#382923] rounded-xl px-3 py-2 w-full focus:outline-none focus:border-[#E38D73] text-xs text-[#FAF6F0] font-medium cursor-pointer"
+                >
+                  <option value="৳">৳ (BDT - Taka)</option>
+                  <option value="$">$ (USD - Dollar)</option>
+                  <option value="€">€ (EUR - Euro)</option>
+                  <option value="£">£ (GBP - Pound)</option>
+                  <option value="₹">₹ (INR - Rupee)</option>
+                  <option value="C$">C$ (CAD - Canadian Dollar)</option>
+                  <option value="A$">A$ (AUD - Australian Dollar)</option>
+                </select>
+              </div>
+
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full bg-[#E38D73] hover:bg-[#F2A38A] disabled:opacity-50 text-[#1C1512] font-bold text-xs py-2.5 rounded-xl transition-all shadow-md cursor-pointer flex items-center justify-center gap-1.5"
+                className="w-full bg-[#E38D73] hover:bg-[#F2A38A] disabled:opacity-50 text-[#1C1512] font-bold text-xs py-2.5 rounded-xl transition-all shadow-md cursor-pointer flex items-center justify-center gap-1.5 mt-2"
               >
                 {loading ? <Loader2 size={13} className="animate-spin text-[#1C1512]" /> : null}
                 <span>Create Home</span>

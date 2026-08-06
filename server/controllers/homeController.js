@@ -6,7 +6,7 @@ const { logChange } = require("./auditController");
 
 exports.createHome = async (req, res) => {
   try {
-    const { name } = req.body;
+    const { name, currency } = req.body;
     if (!name) {
       return res.status(400).json({ error: "Home name is required." });
     }
@@ -18,6 +18,7 @@ exports.createHome = async (req, res) => {
       name: name.trim(),
       admin: userId,
       members: [userId],
+      currency: currency ? currency.trim() : "৳",
     });
 
     await Household.create({
@@ -272,3 +273,43 @@ exports.updatePermission = async (req, res) => {
       .json({ error: "Internal server error updating permissions." });
   }
 };
+
+exports.updateHomeSettings = async (req, res) => {
+  try {
+    const { name, currency } = req.body;
+    const homeId = req.user.homeId;
+    if (!homeId) {
+      return res.status(400).json({ error: "You do not belong to a home." });
+    }
+
+    const home = await Home.findById(homeId);
+    if (!home) {
+      return res.status(404).json({ error: "Home not found." });
+    }
+
+    if (home.admin.toString() !== req.user._id.toString()) {
+      return res
+        .status(403)
+        .json({ error: "Only the household admin can modify home settings." });
+    }
+
+    if (name && name.trim()) home.name = name.trim();
+    if (currency && currency.trim()) home.currency = currency.trim();
+
+    await home.save();
+    await home.populate({
+      path: "members",
+      select: "name nickname email role",
+    });
+
+    return res
+      .status(200)
+      .json({ message: "Home settings updated successfully!", home });
+  } catch (error) {
+    console.error("Update home settings error:", error);
+    return res
+      .status(500)
+      .json({ error: "Internal server error updating home settings." });
+  }
+};
+
