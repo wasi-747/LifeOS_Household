@@ -100,7 +100,7 @@ export default function HouseChat({ currentUser }: HouseChatProps) {
   };
 
   return (
-    <div className="flex flex-col h-[calc(100vh-140px)] bg-[#1C1512] border border-[#382923] rounded-3xl overflow-hidden shadow-2xl animate-fade-in">
+    <div id="house-chat-container" className="flex flex-col h-[calc(100vh-140px)] bg-[#1C1512] border border-[#382923] rounded-3xl overflow-hidden shadow-2xl animate-fade-in">
       {/* Top Header */}
       <div className="px-6 py-4 bg-[#251B17] border-b border-[#382923] flex items-center justify-between">
         <div className="flex items-center gap-3">

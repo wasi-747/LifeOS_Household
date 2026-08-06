@@ -316,7 +316,7 @@ export default function Dashboard() {
   // Tour states & utility
   const [tourStarted, setTourStarted] = useState<boolean>(false);
   const [tourPointerTab, setTourPointerTab] = useState<
-    "dashboard" | "tracker" | "hardware" | "notepad" | "history" | null
+    "dashboard" | "tracker" | "chat" | "hardware" | "notepad" | "history" | null
   >(null);
 
   const moveTourNextWhenReady = useCallback(
@@ -430,6 +430,61 @@ export default function Dashboard() {
         },
         onNextClick: (_element: any, _step: any, { driver }: any) => {
           flushSync(() => {
+            setActiveTab("chat");
+          });
+          moveTourNextWhenReady("#sidebar-tab-chat", driver);
+        },
+      },
+      {
+        element: "#sidebar-tab-chat",
+        popover: {
+          title: "House Chat 💬",
+          description: "This tab is the next destination in the tour.",
+          side: "right" as const,
+          align: "start" as const,
+        },
+        onHighlightStarted: () => {
+          setTourPointerTab("chat");
+        },
+        onDeselected: () => {
+          setTourPointerTab((current) =>
+            current === "chat" ? null : current,
+          );
+        },
+        onPrevClick: (_element: any, _step: any, { driver }: any) => {
+          flushSync(() => {
+            setActiveTab("tracker");
+          });
+          setTimeout(() => {
+            driver.movePrevious();
+          }, 200);
+        },
+        onNextClick: (_element: any, _step: any, { driver }: any) => {
+          flushSync(() => {
+            setActiveTab("chat");
+          });
+          moveTourNextWhenReady("#house-chat-container", driver);
+        },
+      },
+      {
+        element: "#house-chat-container",
+        popover: {
+          title: "Live House Channel 💬",
+          description:
+            "Chat in real time with your roommates and household members. Share grocery updates, dinner plans, or house notes right here.",
+          side: "bottom" as const,
+          align: "start" as const,
+        },
+        onPrevClick: (_element: any, _step: any, { driver }: any) => {
+          flushSync(() => {
+            setActiveTab("chat");
+          });
+          setTimeout(() => {
+            driver.movePrevious();
+          }, 200);
+        },
+        onNextClick: (_element: any, _step: any, { driver }: any) => {
+          flushSync(() => {
             setActiveTab("hardware");
           });
           moveTourNextWhenReady("#sidebar-tab-hardware", driver);
@@ -453,7 +508,7 @@ export default function Dashboard() {
         },
         onPrevClick: (_element: any, _step: any, { driver }: any) => {
           flushSync(() => {
-            setActiveTab("tracker");
+            setActiveTab("chat");
           });
           setTimeout(() => {
             driver.movePrevious();
@@ -1685,6 +1740,11 @@ export default function Dashboard() {
             >
               <MessageSquare size={18} />
               <span>House Chat</span>
+              {tourStarted && tourPointerTab === "chat" && (
+                <span className="pointer-events-none absolute -right-1 top-1/2 -translate-y-1/2 text-slate-200/65 drop-shadow-[0_0_8px_rgba(148,163,184,0.28)] animate-bounce">
+                  <MousePointer2 size={18} />
+                </span>
+              )}
             </button>
             <button
               id="sidebar-tab-hardware"
