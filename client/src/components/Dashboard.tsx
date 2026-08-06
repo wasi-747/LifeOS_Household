@@ -26,6 +26,7 @@ import {
   Sparkles,
   Check,
   Crown,
+  AlertCircle,
 } from "lucide-react";
 import { driver } from "driver.js";
 import "driver.js/dist/driver.css";
@@ -4541,7 +4542,18 @@ export default function Dashboard() {
               </button>
             </div>
 
-            <div className="bg-[#1C1512] border border-[#382923] rounded-2xl p-5 text-center space-y-2">
+            {/* Service Unavailable Banner */}
+            <div className="bg-[#2B1B17] border border-[#E38D73]/35 p-3.5 rounded-2xl flex items-start gap-3 text-xs text-[#E38D73] leading-relaxed shadow-inner">
+              <AlertCircle size={18} className="shrink-0 mt-0.5 text-[#E38D73]" />
+              <div>
+                <strong className="block font-bold text-[#FAF6F0] mb-0.5">
+                  Pro Service Unavailable Right Now
+                </strong>
+                LifeOS Pro subscriptions are currently unavailable right now while we update our payment gateways. Please check back later!
+              </div>
+            </div>
+
+            <div className="bg-[#1C1512] border border-[#382923] rounded-2xl p-5 text-center space-y-2 opacity-75">
               <span className="text-[10px] text-[#A69788] uppercase font-bold tracking-widest">
                 Household Plan
               </span>
@@ -4554,7 +4566,7 @@ export default function Dashboard() {
               </p>
             </div>
 
-            <div className="space-y-2 text-xs text-[#D9CEC1]">
+            <div className="space-y-2 text-xs text-[#D9CEC1] opacity-75">
               <div className="flex items-center gap-2.5">
                 <Check size={15} className="text-[#A0B095]" />
                 <span>Full Device Desk Telemetry & GPU tracking</span>
@@ -4572,19 +4584,21 @@ export default function Dashboard() {
             <div className="pt-2 space-y-2">
               <button
                 onClick={() => {
-                  alert("Thank you for your interest! Pro subscription checkout will open shortly.");
-                  setShowProModal(false);
+                  showAlert(
+                    "Pro Service Unavailable",
+                    "LifeOS Pro subscription service is currently unavailable right now. Please check back later!"
+                  );
                 }}
-                className="w-full bg-[#E38D73] hover:bg-[#F2A38A] text-[#1C1512] font-bold text-xs py-3.5 rounded-2xl transition-all shadow-md cursor-pointer flex items-center justify-center gap-2"
+                className="w-full bg-[#382923] hover:bg-[#4A3728] text-[#FAF6F0] font-bold text-xs py-3.5 rounded-2xl transition-all shadow-md cursor-pointer flex items-center justify-center gap-2 border border-[#E38D73]/30"
               >
-                <Sparkles size={16} />
-                <span>Subscribe Now →</span>
+                <AlertCircle size={16} className="text-[#E38D73]" />
+                <span>Pro Service Unavailable Right Now</span>
               </button>
               <button
                 onClick={() => setShowProModal(false)}
                 className="w-full bg-transparent text-[#A69788] hover:text-[#FAF6F0] text-xs py-2 cursor-pointer border-none font-medium"
               >
-                Maybe Later
+                Close
               </button>
             </div>
           </div>
