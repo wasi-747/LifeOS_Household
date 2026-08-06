@@ -232,12 +232,8 @@ exports.forgotPassword = async (req, res) => {
       `,
     };
 
-    // Send email asynchronously in background so HTTP response returns instantly (0ms delay)
-    transporter.sendMail(mailOptions).then((info) => {
-      console.log("Password reset email sent successfully! MessageId:", info.messageId);
-    }).catch((err) => {
-      console.error("Async Nodemailer error sending reset email:", err);
-    });
+    // Send email using Nodemailer (Awaited to ensure SMTP handshake completes on cloud host)
+    await transporter.sendMail(mailOptions);
 
     return res.status(200).json({
       message: `Reset OTP sent successfully to ${user.email}`,
