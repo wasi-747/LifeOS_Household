@@ -4558,7 +4558,7 @@ export default function Dashboard() {
                 Household Plan
               </span>
               <div className="text-3xl font-black text-[#E38D73]">
-                {currencySymbol === "৳" ? "৳499" : "$4.99"}
+                {currencySymbol === "৳" ? "৳199" : "$1.99"}
                 <span className="text-xs text-[#A69788] font-normal"> / month</span>
               </div>
               <p className="text-[11px] text-[#A69788]">
