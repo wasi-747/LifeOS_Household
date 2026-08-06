@@ -1016,6 +1016,18 @@ export default function Dashboard() {
     }
   }, [token]);
 
+  useEffect(() => {
+    const handleUnauthorized = () => {
+      localStorage.removeItem("lifeos-token");
+      setToken(null);
+      setCurrentUser(null);
+    };
+    window.addEventListener("lifeos-unauthorized", handleUnauthorized);
+    return () => {
+      window.removeEventListener("lifeos-unauthorized", handleUnauthorized);
+    };
+  }, []);
+
   const handleLogout = () => {
     localStorage.removeItem("lifeos-token");
     setToken(null);

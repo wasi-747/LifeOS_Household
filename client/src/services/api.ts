@@ -28,4 +28,15 @@ api.interceptors.request.use(
   }
 );
 
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response && error.response.status === 401) {
+      localStorage.removeItem('lifeos-token');
+      window.dispatchEvent(new Event('lifeos-unauthorized'));
+    }
+    return Promise.reject(error);
+  }
+);
+
 export default api;
