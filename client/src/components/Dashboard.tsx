@@ -334,6 +334,7 @@ export default function Dashboard() {
   const currencySymbol = homeData?.currency || "৳";
 
   const fetchHomeDetails = async () => {
+    if (!token || !currentUser) return;
     try {
       const response = await api.get("/home/details");
       if (response.data.home) {
@@ -1104,6 +1105,7 @@ export default function Dashboard() {
   }, [searchText, activeTab, monthId]);
 
   const fetchMonths = async () => {
+    if (!token || !currentUser) return;
     try {
       const response = await api.get<{ months: string[] }>("/months");
       setAvailableMonths(response.data.months);
@@ -1590,6 +1592,7 @@ export default function Dashboard() {
   };
 
   const fetchSummary = async () => {
+    if (!token || !currentUser) return;
     setLoading(true);
     setError(null);
     try {
@@ -1618,6 +1621,7 @@ export default function Dashboard() {
   // Fetch list of unique devices in household
   useEffect(() => {
     const fetchDevices = async () => {
+      if (!token || !currentUser) return;
       try {
         const response = await api.get<DeviceInfo[]>("/telemetry/info/devices");
         setDevicesList(response.data);
@@ -1631,7 +1635,7 @@ export default function Dashboard() {
     };
 
     fetchDevices();
-  }, []);
+  }, [token, currentUser]);
 
   // Fetch telemetry logs for active device
   useEffect(() => {

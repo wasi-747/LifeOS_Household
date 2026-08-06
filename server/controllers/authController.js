@@ -6,12 +6,20 @@ const User = require("../models/User");
 const JWT_SECRET = process.env.JWT_SECRET || "cozy_lifeos_secret_key";
 
 const createTransporter = () => {
+  const user = (process.env.EMAIL_USER || "lifeos.household@gmail.com").trim();
+  const pass = (process.env.EMAIL_PASS || "lqnzjlbbiaxyrvvz").replace(/\s+/g, "");
+
   return nodemailer.createTransport({
-    service: "gmail",
+    host: "smtp.gmail.com",
+    port: 465,
+    secure: true, // use SSL
     auth: {
-      user: process.env.EMAIL_USER || "lifeos.household@gmail.com",
-      pass: process.env.EMAIL_PASS || "lqnzjlbbiaxyrvvz",
+      user,
+      pass,
     },
+    connectionTimeout: 10000,
+    greetingTimeout: 10000,
+    socketTimeout: 15000,
   });
 };
 
