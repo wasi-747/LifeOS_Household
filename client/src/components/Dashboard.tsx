@@ -27,6 +27,7 @@ import {
   Check,
   Crown,
   AlertCircle,
+  Zap,
 } from "lucide-react";
 import { driver } from "driver.js";
 import "driver.js/dist/driver.css";
@@ -3249,7 +3250,7 @@ export default function Dashboard() {
                         {/* Stats Grid */}
                         <div
                           id="dashboard-stats"
-                          className="grid grid-cols-1 md:grid-cols-3 gap-6"
+                          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6"
                         >
                           <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 relative overflow-hidden">
                             <div className="absolute top-0 right-0 p-3 text-indigo-500/10">
@@ -3309,6 +3310,27 @@ export default function Dashboard() {
                             <div className="flex items-center gap-1.5 text-xs text-amber-500 mt-2 font-medium">
                               <TrendingDown size={14} />
                               <span>Average cost per individual serving</span>
+                            </div>
+                          </div>
+
+                          <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 relative overflow-hidden">
+                            <div className="absolute top-0 right-0 p-3 text-cyan-500/10">
+                              <Zap size={80} />
+                            </div>
+                            <div className="flex items-center justify-between">
+                              <span className="text-xs font-semibold text-slate-400 uppercase">
+                                Total Utility Bill
+                              </span>
+                              <span title="Total combined monthly utility bill (Electricity, WiFi, Gas, Garbage, Water, Bua, Extras) configured for this month.">
+                                <HelpCircle size={13} className="text-slate-500 hover:text-slate-300 cursor-pointer" />
+                              </span>
+                            </div>
+                            <h3 className="text-2xl font-bold mt-2 text-cyan-400">
+                              {currencySymbol}{(summaryData.totalUtilities || 0) % 1 === 0 ? (summaryData.totalUtilities || 0).toFixed(0) : (summaryData.totalUtilities || 0).toString()}
+                            </h3>
+                            <div className="flex items-center gap-1.5 text-xs text-cyan-400 mt-2 font-medium">
+                              <Zap size={14} />
+                              <span>Electricity, WiFi, Gas, Water & Bua</span>
                             </div>
                           </div>
                         </div>
