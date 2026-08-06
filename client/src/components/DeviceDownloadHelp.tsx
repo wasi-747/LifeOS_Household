@@ -63,7 +63,7 @@ export default function DeviceDownloadHelp({ onClose }: DeviceDownloadHelpProps)
           {/* Windows Instructions */}
           <div className="space-y-3">
             <h3 className="text-white font-semibold flex items-center gap-2">
-              <span className="w-6 h-6 rounded bg-blue-500/20 text-blue-400 flex items-center justify-center text-xs font-bold">
+              <span className="w-6 h-6 rounded bg-indigo-600/20 text-indigo-400 flex items-center justify-center text-xs font-bold">
                 W
               </span>
               Windows Installation

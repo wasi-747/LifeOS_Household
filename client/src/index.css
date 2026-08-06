@@ -37,12 +37,65 @@
   --color-slate-200: var(--text-primary);
   --color-slate-100: var(--text-primary);
   
-  /* Indigo mappings to terracotta */
-  --color-indigo-600: var(--accent-terracotta);
-  --color-indigo-500: var(--accent-terracotta);
-  --color-indigo-400: var(--accent-terracotta);
-  --color-indigo-650: var(--accent-terracotta-hover);
+  /* Indigo mappings to warm terracotta */
+  --color-indigo-950: #261A16;
+  --color-indigo-900: #38251F;
+  --color-indigo-850: #452E27;
+  --color-indigo-800: #4D3129;
   --color-indigo-750: var(--accent-terracotta-hover);
+  --color-indigo-700: #6B4237;
+  --color-indigo-650: var(--accent-terracotta-hover);
+  --color-indigo-600: var(--accent-terracotta);
+  --color-indigo-550: var(--accent-terracotta);
+  --color-indigo-500: var(--accent-terracotta);
+  --color-indigo-450: var(--accent-terracotta);
+  --color-indigo-400: var(--accent-terracotta);
+  --color-indigo-305: #EF9B83;
+  --color-indigo-300: #F2B4A3;
+  --color-indigo-200: #F8D5CB;
+  --color-indigo-100: #FAF0EC;
+  --color-indigo-50: #FDF7F5;
+
+  /* Blue mappings to warm terracotta */
+  --color-blue-950: #261A16;
+  --color-blue-900: #38251F;
+  --color-blue-850: #452E27;
+  --color-blue-800: #4D3129;
+  --color-blue-750: var(--accent-terracotta-hover);
+  --color-blue-700: #6B4237;
+  --color-blue-650: var(--accent-terracotta-hover);
+  --color-blue-600: var(--accent-terracotta);
+  --color-blue-550: var(--accent-terracotta);
+  --color-blue-500: var(--accent-terracotta);
+  --color-blue-450: var(--accent-terracotta);
+  --color-blue-400: var(--accent-terracotta);
+  --color-blue-300: #F2B4A3;
+  --color-blue-200: #F8D5CB;
+  --color-blue-100: #FAF0EC;
+  --color-blue-50: #FDF7F5;
+
+  /* Sky and Cyan mappings to warm sage accent */
+  --color-sky-950: #1B241A;
+  --color-sky-900: #273626;
+  --color-sky-800: #384C37;
+  --color-sky-700: #4E684C;
+  --color-sky-600: var(--accent-sage);
+  --color-sky-500: var(--accent-sage);
+  --color-sky-400: var(--accent-sage);
+  --color-sky-300: #C2CFB9;
+  --color-sky-200: #DDE5D7;
+  --color-sky-100: #EEF2EB;
+
+  --color-cyan-950: #1B241A;
+  --color-cyan-900: #273626;
+  --color-cyan-800: #384C37;
+  --color-cyan-700: #4E684C;
+  --color-cyan-600: var(--accent-sage);
+  --color-cyan-500: var(--accent-sage);
+  --color-cyan-400: var(--accent-sage);
+  --color-cyan-300: #C2CFB9;
+  --color-cyan-200: #DDE5D7;
+  --color-cyan-100: #EEF2EB;
   
   /* Amber mappings to mustard/honey */
   --color-amber-500: var(--accent-mustard);
