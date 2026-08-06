@@ -22,10 +22,10 @@ import {
   MessageSquare,
   HelpCircle,
   MousePointer2,
-  Monitor,
-  Tag,
-  Download,
-  AlertCircle,
+  Lock,
+  Sparkles,
+  Check,
+  Crown,
 } from "lucide-react";
 import { driver } from "driver.js";
 import "driver.js/dist/driver.css";
@@ -36,19 +36,7 @@ import ConfirmDialog from "./ConfirmDialog";
 import DeviceConsentModal from "./DeviceConsentModal";
 import DeviceTrackingSettings from "./DeviceTrackingSettings";
 import DeviceDownloadHelp from "./DeviceDownloadHelp";
-import {
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-  LineChart,
-  Line,
-  Legend,
-  PieChart,
-  Pie,
-  Cell,
-} from "recharts";
+
 
 interface UserStanding {
   userId: string;
@@ -147,30 +135,6 @@ interface SummaryData {
   userStandings: UserStanding[];
 }
 
-interface DeviceInfo {
-  deviceId: string;
-  owner: {
-    name: string;
-    email: string;
-    role: string;
-  } | null;
-}
-
-interface TelemetryRecord {
-  _id: string;
-  deviceId: string;
-  timestamp: string;
-  cpuUsage: number;
-  ramUsage: number;
-  uptime: number;
-  activityBreakdown: {
-    Coding: number;
-    Gaming: number;
-    Browsing: number;
-    Other: number;
-  };
-}
-
 export default function Dashboard() {
   const getGreeting = () => {
     const hr = new Date().getHours();
@@ -195,49 +159,15 @@ export default function Dashboard() {
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Telemetry States
-  const [devicesList, setDevicesList] = useState<DeviceInfo[]>([]);
-  const [selectedDeviceId, setSelectedDeviceId] =
-    useState<string>("jashore-laptop");
-  const [telemetryData, setTelemetryData] = useState<TelemetryRecord[] | null>(
-    null,
-  );
-  const [telemetryLoading, setTelemetryLoading] = useState<boolean>(false);
-  const [telemetryError, setTelemetryError] = useState<string | null>(null);
-
-  // Device Usage Tracking States
+  // Device Desk States
   const [consentStatus, setConsentStatus] = useState<{
     isActive: boolean;
     consentedAt: string | null;
   }>({ isActive: false, consentedAt: null });
-  const [usageSummary, setUsageSummary] = useState<{
-    totalHours: number;
-    categoryBreakdown: Array<{ name: string; seconds: number; hours: number }>;
-    deviceLedger: Array<{
-      deviceId: string;
-      deviceName: string;
-      ownerName: string;
-      usageHours: number;
-      usagePercent: number;
-    }>;
-    period: string;
-  } | null>(null);
-  const [usageLoading, setUsageLoading] = useState<boolean>(false);
-  const [usagePeriod, setUsagePeriod] = useState<"daily" | "monthly">("daily");
-  const [untaggedApps, setUntaggedApps] = useState<
-    Array<{
-      appName: string;
-      totalSeconds: number;
-      totalHours: number;
-      sessionCount: number;
-      suggestedCategory: string | null;
-    }>
-  >([]);
-  const [untaggedLoading, setUntaggedLoading] = useState<boolean>(false);
   const [showConsentModal, setShowConsentModal] = useState<boolean>(false);
   const [showTrackingSettings, setShowTrackingSettings] = useState<boolean>(false);
   const [showDownloadHelp, setShowDownloadHelp] = useState<boolean>(false);
-  const [trackingIndicatorVisible, setTrackingIndicatorVisible] = useState<boolean>(false);
+  const [showProModal, setShowProModal] = useState<boolean>(false);
 
   // Daily Tracker Interfaces & States
   interface TrackerUser {
@@ -1622,48 +1552,7 @@ export default function Dashboard() {
     }
   }, [monthId, token, currentUser]);
 
-  // Fetch list of unique devices in household
-  useEffect(() => {
-    const fetchDevices = async () => {
-      if (!token || !currentUser) return;
-      try {
-        const response = await api.get<DeviceInfo[]>("/telemetry/info/devices");
-        setDevicesList(response.data);
-        if (response.data.length > 0) {
-          // Default to the first found device ID
-          setSelectedDeviceId(response.data[0].deviceId);
-        }
-      } catch (err) {
-        console.error("Error fetching devices list:", err);
-      }
-    };
 
-    fetchDevices();
-  }, [token, currentUser]);
-
-  // Fetch telemetry logs for active device
-  useEffect(() => {
-    if (activeTab !== "hardware" || !selectedDeviceId) return;
-
-    const fetchTelemetry = async () => {
-      setTelemetryLoading(true);
-      setTelemetryError(null);
-      try {
-        const response = await api.get<TelemetryRecord[]>(
-          `/telemetry/${selectedDeviceId}`,
-        );
-        const sortedData = [...response.data].reverse();
-        setTelemetryData(sortedData);
-      } catch (err: any) {
-        console.error("Error fetching telemetry:", err);
-        setTelemetryError(err.message || "Failed to fetch telemetry logs.");
-      } finally {
-        setTelemetryLoading(false);
-      }
-    };
-
-    fetchTelemetry();
-  }, [activeTab, selectedDeviceId]);
 
   // Device Usage Tracking Functions
   const fetchConsentStatus = async () => {
@@ -1673,115 +1562,10 @@ export default function Dashboard() {
         isActive: response.data.isActive,
         consentedAt: response.data.consent?.consentedAt || null,
       });
-      setTrackingIndicatorVisible(response.data.isActive);
     } catch (err) {
       console.error("Error fetching consent status:", err);
     }
   };
-
-  const fetchUsageSummary = async () => {
-    if (!consentStatus.isActive) return;
-    setUsageLoading(true);
-    try {
-      const response = await api.get("/device-usage/summary", {
-        params: { period: usagePeriod },
-      });
-      setUsageSummary(response.data);
-    } catch (err) {
-      console.error("Error fetching usage summary:", err);
-    } finally {
-      setUsageLoading(false);
-    }
-  };
-
-  const fetchUntaggedApps = async () => {
-    if (!consentStatus.isActive) return;
-    setUntaggedLoading(true);
-    try {
-      const response = await api.get("/device-usage/untagged");
-      setUntaggedApps(response.data.apps);
-    } catch (err) {
-      console.error("Error fetching untagged apps:", err);
-    } finally {
-      setUntaggedLoading(false);
-    }
-  };
-
-  const handleTagApp = async (appName: string, category: string) => {
-    try {
-      await api.post("/device-usage/categories/tag", { appName, category });
-      await fetchUntaggedApps();
-      await fetchUsageSummary();
-    } catch (err: any) {
-      showAlert(
-        "Error",
-        err.response?.data?.error || "Failed to tag app category",
-      );
-    }
-  };
-
-  const handleGeneratePairingCode = async () => {
-    try {
-      const response = await api.post("/devices/pair", {
-        deviceName: `${currentUser?.name || "My"}'s Device`,
-        os: navigator.platform,
-      });
-      showAlert(
-        "Pairing Code Generated",
-        `Your pairing code is: ${response.data.pairingCode}\n\nEnter this code in the LifeOS Agent on your device to link it. This code expires in 15 minutes.`,
-      );
-    } catch (err: any) {
-      showAlert(
-        "Error",
-        err.response?.data?.error || "Failed to generate pairing code",
-      );
-    }
-  };
-
-  // Fetch consent status on mount and when user changes
-  useEffect(() => {
-    if (currentUser?.homeId) {
-      fetchConsentStatus();
-    }
-  }, [currentUser]);
-
-  // Fetch usage data when consent is active and tab is hardware
-  useEffect(() => {
-    if (activeTab === "hardware" && consentStatus.isActive) {
-      fetchUsageSummary();
-      fetchUntaggedApps();
-    }
-  }, [activeTab, consentStatus.isActive, usagePeriod]);
-
-  // Process data for the activity breakdown PieChart
-  const getPieData = () => {
-    if (!telemetryData || telemetryData.length === 0) return [];
-    let coding = 0,
-      gaming = 0,
-      browsing = 0,
-      other = 0;
-    telemetryData.forEach((item) => {
-      coding += item.activityBreakdown?.Coding || 0;
-      gaming += item.activityBreakdown?.Gaming || 0;
-      browsing += item.activityBreakdown?.Browsing || 0;
-      other += item.activityBreakdown?.Other || 0;
-    });
-    return [
-      { name: "Coding", value: coding },
-      { name: "Gaming", value: gaming },
-      { name: "Browsing", value: browsing },
-      { name: "Other", value: other },
-    ].filter((item) => item.value > 0);
-  };
-
-  const formatUptime = (seconds: number) => {
-    const hrs = Math.floor(seconds / 3600);
-    const mins = Math.floor((seconds % 3600) / 60);
-    return `${hrs}h ${mins}m`;
-  };
-
-  const pieData = getPieData();
-  const PIE_COLORS = ["#6366f1", "#10b981", "#f59e0b", "#64748b"];
 
   if (authLoading) {
     return (
@@ -2219,605 +2003,81 @@ export default function Dashboard() {
 
         {/* Content Container */}
         <div className="p-8 space-y-8 flex-1">
-          {/* Hardware & Telemetry View */}
+          {/* Hardware & Telemetry View - Locked Behind LifeOS Pro Subscription */}
           {activeTab === "hardware" && (
-            <div id="device-desk-container" className="space-y-6">
+            <div id="device-desk-container" className="space-y-6 animate-fade-in">
               {/* Header */}
               <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
                 <div>
-                  <h2 className="text-2xl font-bold text-white tracking-tight font-serif">
-                    Device Desk
-                  </h2>
+                  <div className="flex items-center gap-2">
+                    <h2 className="text-2xl font-bold text-white tracking-tight font-serif">
+                      Device Desk
+                    </h2>
+                    <span className="bg-amber-500/15 border border-amber-500/30 text-amber-400 text-[10px] font-black uppercase px-2 py-0.5 rounded-full flex items-center gap-1">
+                      <Lock size={11} /> PRO FEATURE
+                    </span>
+                  </div>
                   <p className="text-slate-400 text-sm">
-                    Track application usage and device activity across your household.
+                    Track application usage, CPU/RAM telemetry, and device activity across your household.
                   </p>
-                </div>
-                <div className="flex items-center gap-3">
-                  {trackingIndicatorVisible && (
-                    <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/20">
-                      <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-                      <span className="text-[10px] font-bold text-emerald-400 uppercase tracking-wider">
-                        Tracking Active
-                      </span>
-                    </div>
-                  )}
-                  <button
-                    onClick={() => setShowTrackingSettings(true)}
-                    className="flex items-center gap-2 px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-750 border border-slate-700 text-xs font-semibold text-slate-300 cursor-pointer transition-all"
-                  >
-                    <Sliders size={14} />
-                    Settings
-                  </button>
                 </div>
               </div>
 
-              {/* Consent Required State */}
-              {!consentStatus.isActive && (
-                <div className="bg-slate-900/40 border border-slate-800 rounded-2xl p-8 text-center space-y-6">
-                  <div className="flex items-center justify-center w-16 h-16 rounded-full bg-indigo-600/20 text-indigo-400 mx-auto">
-                    <Monitor size={32} />
-                  </div>
-                  <div className="space-y-2">
-                    <h3 className="text-lg font-bold text-white font-serif">
-                      Enable Device Tracking
-                    </h3>
-                    <p className="text-slate-400 text-sm max-w-md mx-auto">
-                      Track which applications are used and for how long across your household devices. 
-                      GPU data helps categorize gaming vs work activities.
-                    </p>
-                  </div>
-                  <div className="flex flex-col sm:flex-row gap-3 justify-center">
-                    <button
-                      onClick={() => setShowConsentModal(true)}
-                      className="flex items-center justify-center gap-2 px-6 py-2.5 text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl cursor-pointer transition-all"
-                    >
-                      Enable Tracking
-                    </button>
-                    <button
-                      onClick={handleGeneratePairingCode}
-                      className="flex items-center justify-center gap-2 px-6 py-2.5 text-xs font-semibold text-slate-300 bg-slate-800 hover:bg-slate-750 border border-slate-700 rounded-xl cursor-pointer transition-all"
-                    >
-                      <Download size={14} />
-                      Get Pairing Code
-                    </button>
-                  </div>
-                  <button
-                    onClick={() => setShowDownloadHelp(true)}
-                    className="text-xs text-indigo-400 hover:text-indigo-300 underline cursor-pointer"
-                  >
-                    Installation help for unsigned apps
-                  </button>
-                  <div className="bg-slate-800/30 rounded-xl px-4 py-3 border border-slate-800 text-xs text-slate-400 leading-relaxed max-w-lg mx-auto">
-                    <p className="font-semibold text-slate-300 mb-1">We track:</p>
-                    <ul className="list-disc pl-4 space-y-0.5">
-                      <li>Application/process names and duration</li>
-                      <li>GPU utilization (for category suggestions)</li>
-                    </ul>
-                    <p className="font-semibold text-slate-300 mt-2 mb-1">Never tracked:</p>
-                    <ul className="list-disc pl-4 space-y-0.5">
-                      <li>Window titles, URLs, browser history, screen content</li>
-                    </ul>
-                  </div>
-                </div>
-              )}
+              {/* Locked Pro Paywall Card */}
+              <div className="bg-gradient-to-b from-[#251B17] to-[#1C1512] border border-[#382923] rounded-3xl p-8 md:p-12 text-center space-y-6 relative overflow-hidden shadow-2xl max-w-3xl mx-auto my-6">
+                {/* Ambient Warm Orbs */}
+                <div className="absolute -top-12 -right-12 w-48 h-48 rounded-full bg-[#E38D73]/10 blur-3xl pointer-events-none" />
+                <div className="absolute -bottom-12 -left-12 w-48 h-48 rounded-full bg-[#EBC161]/10 blur-3xl pointer-events-none" />
 
-              {/* Active Tracking State */}
-              {consentStatus.isActive && (
-                <>
-                  {/* Period Toggle */}
-                  <div className="flex items-center gap-2 bg-slate-900 border border-slate-800 rounded-xl p-1 w-fit">
-                    <button
-                      onClick={() => setUsagePeriod("daily")}
-                      className={`px-4 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
-                        usagePeriod === "daily"
-                          ? "bg-indigo-600 text-white"
-                          : "text-slate-400 hover:text-slate-200"
-                      }`}
-                    >
-                      Today
-                    </button>
-                    <button
-                      onClick={() => setUsagePeriod("monthly")}
-                      className={`px-4 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
-                        usagePeriod === "monthly"
-                          ? "bg-indigo-600 text-white"
-                          : "text-slate-400 hover:text-slate-200"
-                      }`}
-                    >
-                      This Month
-                    </button>
-                  </div>
-
-                  {usageLoading ? (
-                    <div className="flex flex-col items-center justify-center h-64 gap-4">
-                      <Loader2 className="h-8 w-8 text-indigo-600 animate-spin" />
-                      <p className="text-slate-400 text-sm font-medium">
-                        Loading usage data...
-                      </p>
-                    </div>
-                  ) : usageSummary ? (
-                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                      {/* Category Breakdown Chart */}
-                      <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl space-y-4">
-                        <div>
-                          <h3 className="font-bold text-sm text-white">
-                            Application Share
-                          </h3>
-                          <span className="text-[10px] text-slate-500 block">
-                            {usagePeriod === "daily" ? "Today's" : "This month's"} category breakdown
-                          </span>
-                        </div>
-                        {usageSummary.categoryBreakdown.length > 0 ? (
-                          <div className="h-48 w-full">
-                            <ResponsiveContainer width="100%" height="100%">
-                              <PieChart>
-                                <Pie
-                                  data={usageSummary.categoryBreakdown.map((item) => ({
-                                    name: item.name,
-                                    value: item.hours,
-                                  }))}
-                                  cx="50%"
-                                  cy="50%"
-                                  innerRadius={45}
-                                  outerRadius={65}
-                                  paddingAngle={5}
-                                  dataKey="value"
-                                >
-                                  {usageSummary.categoryBreakdown.map((_, index) => (
-                                    <Cell
-                                      key={`cell-${index}`}
-                                      fill={PIE_COLORS[index % PIE_COLORS.length]}
-                                    />
-                                  ))}
-                                </Pie>
-                                <Tooltip formatter={(value: any) => [`${typeof value === 'number' ? value.toFixed(1) : value} hrs`, "Duration"]} />
-                                <Legend layout="horizontal" align="center" verticalAlign="bottom" />
-                              </PieChart>
-                            </ResponsiveContainer>
-                          </div>
-                        ) : (
-                          <div className="flex-1 flex items-center justify-center text-slate-400 text-xs py-8">
-                            No usage data yet
-                          </div>
-                        )}
-                        <div className="text-center">
-                          <span className="text-2xl font-black text-indigo-400">
-                            {usageSummary.totalHours.toFixed(1)}
-                          </span>
-                          <span className="text-xs text-slate-500 block uppercase tracking-wider">
-                            Total Hours
-                          </span>
-                        </div>
-                      </div>
-
-                      {/* Device Usage Ledger */}
-                      <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl space-y-4">
-                        <div>
-                          <h3 className="font-bold text-sm text-white">
-                            Device Usage Ledger
-                          </h3>
-                          <span className="text-[10px] text-slate-500 block">
-                            Usage by device across household
-                          </span>
-                        </div>
-                        <div className="space-y-3 max-h-64 overflow-y-auto">
-                          {usageSummary.deviceLedger.length > 0 ? (
-                            usageSummary.deviceLedger.map((dev) => (
-                              <div
-                                key={dev.deviceId}
-                                className="flex justify-between items-center bg-slate-800/35 p-3 rounded-xl border border-slate-800/50"
-                              >
-                                <div>
-                                  <span className="font-semibold text-xs text-white block uppercase tracking-wider">
-                                    {dev.deviceName || dev.deviceId}
-                                  </span>
-                                  <span className="text-[10px] text-indigo-400 capitalize">
-                                    {dev.ownerName}
-                                  </span>
-                                </div>
-                                <div className="text-right">
-                                  <span className="text-xs font-bold text-indigo-400 block">
-                                    {dev.usageHours.toFixed(1)} hrs
-                                  </span>
-                                  <span className="text-[10px] text-slate-500">
-                                    {dev.usagePercent.toFixed(1)}% share
-                                  </span>
-                                </div>
-                              </div>
-                            ))
-                          ) : (
-                            <p className="text-slate-500 text-xs py-4 text-center">
-                              No devices with usage data
-                            </p>
-                          )}
-                        </div>
-                      </div>
-
-                      {/* New Apps to Tag */}
-                      <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl space-y-4">
-                        <div>
-                          <h3 className="font-bold text-sm text-white flex items-center gap-2">
-                            <Tag size={14} />
-                            New Apps This Week
-                          </h3>
-                          <span className="text-[10px] text-slate-500 block">
-                            Tag apps to categorize household usage
-                          </span>
-                        </div>
-                        <div className="space-y-3 max-h-64 overflow-y-auto">
-                          {untaggedLoading ? (
-                            <div className="flex items-center justify-center py-4">
-                              <Loader2 size={16} className="animate-spin text-slate-500" />
-                            </div>
-                          ) : untaggedApps.length > 0 ? (
-                            untaggedApps.slice(0, 5).map((app) => (
-                              <div
-                                key={app.appName}
-                                className="bg-slate-800/35 p-3 rounded-xl border border-slate-800/50 space-y-2"
-                              >
-                                <div className="flex justify-between items-start">
-                                  <span className="font-semibold text-xs text-white block">
-                                    {app.appName}
-                                  </span>
-                                  <span className="text-[10px] text-slate-500">
-                                    {app.totalHours.toFixed(1)} hrs
-                                  </span>
-                                </div>
-                                <div className="flex gap-2">
-                                  <select
-                                    value={app.suggestedCategory || ""}
-                                    onChange={(e) => handleTagApp(app.appName, e.target.value)}
-                                    className="flex-1 bg-slate-900 text-xs text-slate-300 border border-slate-700 rounded px-2 py-1 focus:outline-none focus:border-indigo-500 cursor-pointer"
-                                  >
-                                    <option value="">Select category...</option>
-                                    <option value="Gaming">Gaming</option>
-                                    <option value="Work">Work</option>
-                                    <option value="Entertainment">Entertainment</option>
-                                    <option value="Other">Other</option>
-                                  </select>
-                                </div>
-                                {app.suggestedCategory && (
-                                  <span className="text-[10px] text-amber-400">
-                                    Suggested: {app.suggestedCategory} (GPU &gt; 50%)
-                                  </span>
-                                )}
-                              </div>
-                            ))
-                          ) : (
-                            <p className="text-slate-500 text-xs py-4 text-center">
-                              All apps are categorized
-                            </p>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="flex flex-col items-center justify-center h-64 gap-4 bg-slate-900/40 border border-slate-800 rounded-2xl p-8">
-                      <AlertCircle size={32} className="text-slate-500" />
-                      <h3 className="text-lg font-bold text-white font-serif">
-                        No Usage Data Yet
-                      </h3>
-                      <p className="text-slate-400 text-sm text-center max-w-md">
-                        Install the LifeOS Agent on your devices and enter the pairing code to start tracking usage.
-                      </p>
-                      <button
-                        onClick={handleGeneratePairingCode}
-                        className="flex items-center gap-2 px-6 py-2.5 text-xs font-semibold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl cursor-pointer transition-all"
-                      >
-                        <Download size={14} />
-                        Get Pairing Code
-                      </button>
-                    </div>
-                  )}
-                </>
-              )}
-            </div>
-          )}
-          {(activeTab as any) === "hardware-disabled" && (
-            <div className="space-y-8">
-              {/* Heading and Device Selector */}
-              <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
-                <div>
-                  <h2 className="text-2xl font-bold text-white tracking-tight font-serif">
-                    Device Desk
-                  </h2>
-                  <p className="text-slate-400 text-sm">
-                    Check active computer units and system health in the house.
-                  </p>
+                {/* Pro Lock Badge */}
+                <div className="w-16 h-16 rounded-2xl bg-[#E38D73]/15 border border-[#E38D73]/30 text-[#E38D73] flex items-center justify-center mx-auto shadow-lg shadow-[#E38D73]/10">
+                  <Lock size={32} />
                 </div>
 
-                <div className="flex items-center gap-3 bg-slate-900 border border-slate-800 rounded-xl px-4 py-2.5">
-                  <span className="text-xs text-slate-400 font-medium uppercase tracking-wider">
-                    Select Device:
+                <div className="space-y-3 max-w-md mx-auto">
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#1C1512] border border-[#382923] text-[11px] font-bold text-[#E38D73] uppercase tracking-wider">
+                    <Sparkles size={12} className="text-[#EBC161]" /> Pro Subscription Required
                   </span>
-                  <select
-                    value={selectedDeviceId}
-                    onChange={(e) => setSelectedDeviceId(e.target.value)}
-                    className="bg-slate-800 text-xs font-bold text-indigo-400 focus:outline-none border border-slate-700 rounded px-2.5 py-1.5 cursor-pointer uppercase tracking-widest"
-                  >
-                    {devicesList.map((dev) => (
-                      <option key={dev.deviceId} value={dev.deviceId}>
-                        {dev.deviceId} {dev.owner ? `(${dev.owner.name})` : ""}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-
-              {telemetryLoading ? (
-                <div className="flex flex-col items-center justify-center h-96 gap-4">
-                  <Loader2 className="h-10 w-10 text-indigo-600 animate-spin" />
-                  <p className="text-slate-400 text-sm font-semibold">
-                    Listening for home devices...
-                  </p>
-                </div>
-              ) : telemetryError ? (
-                <div className="flex flex-col items-center justify-center h-96 gap-4 bg-slate-900/40 border border-slate-800 rounded-2xl p-8">
-                  <span className="text-4xl">🔌</span>
-                  <h3 className="text-lg font-bold text-white font-serif">
-                    Device Desk is Quiet
+                  <h3 className="text-2xl md:text-3xl font-serif font-black text-[#FAF6F0] tracking-tight">
+                    Device Desk is Locked
                   </h3>
-                  <p className="text-slate-400 text-sm text-center max-w-md">
-                    The telemetry database is offline right now. Enjoy the
-                    peaceful silence, or click below to check again.
+                  <p className="text-xs text-[#A69788] leading-relaxed">
+                    Real-time PC telemetry, GPU application breakdown, and multi-device activity tracking require an active <strong className="text-[#FAF6F0]">LifeOS Pro</strong> subscription.
                   </p>
+                </div>
+
+                {/* Pro Features Included List */}
+                <div className="bg-[#1C1512] border border-[#382923] rounded-2xl p-5 text-left max-w-lg mx-auto space-y-3">
+                  <h4 className="text-xs font-bold text-[#FAF6F0] uppercase tracking-wider flex items-center gap-1.5">
+                    <Crown size={14} className="text-[#EBC161]" /> Included in LifeOS Pro:
+                  </h4>
+                  <ul className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 text-xs text-[#D9CEC1]">
+                    <li className="flex items-center gap-2">
+                      <Check size={14} className="text-[#A0B095] shrink-0" /> Real-time CPU & RAM Telemetry
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <Check size={14} className="text-[#A0B095] shrink-0" /> GPU App Usage Categorization
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <Check size={14} className="text-[#A0B095] shrink-0" /> Unlimited Household Devices
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <Check size={14} className="text-[#A0B095] shrink-0" /> Automated PC Tracker & Sync
+                    </li>
+                  </ul>
+                </div>
+
+                {/* CTA Button */}
+                <div className="pt-2">
                   <button
-                    onClick={() => setSelectedDeviceId(selectedDeviceId)}
-                    className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-xl text-xs font-semibold mt-2 transition-all cursor-pointer"
+                    onClick={() => setShowProModal(true)}
+                    className="bg-[#E38D73] hover:bg-[#F2A38A] text-[#1C1512] font-extrabold text-xs px-8 py-3.5 rounded-2xl shadow-xl shadow-[#E38D73]/20 transition-all cursor-pointer inline-flex items-center gap-2 transform hover:scale-102"
                   >
-                    Try Listening Again
+                    <Sparkles size={16} />
+                    <span>Upgrade to LifeOS Pro →</span>
                   </button>
                 </div>
-              ) : telemetryData && telemetryData.length > 0 ? (
-                <>
-                  {/* Uptime and Status Overview */}
-                  <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-                    <div className="backdrop-blur-md bg-white/5 border border-white/10 rounded-2xl p-6 relative overflow-hidden shadow-xl">
-                      <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider block">
-                        Device Uptime
-                      </span>
-                      <h3 className="text-2xl font-extrabold mt-2 text-emerald-400">
-                        {formatUptime(
-                          telemetryData[telemetryData.length - 1].uptime,
-                        )}
-                      </h3>
-                      <p className="text-[10px] text-slate-500 mt-2">
-                        Active boot duration
-                      </p>
-                    </div>
-
-                    <div className="backdrop-blur-md bg-white/5 border border-white/10 rounded-2xl p-6 relative overflow-hidden shadow-xl">
-                      <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider block">
-                        Current CPU Load
-                      </span>
-                      <h3 className="text-2xl font-extrabold mt-2 text-rose-400">
-                        {telemetryData[
-                          telemetryData.length - 1
-                        ].cpuUsage.toFixed(1)}
-                        %
-                      </h3>
-                      <p className="text-[10px] text-slate-500 mt-2">
-                        Latest telemetry snapshot
-                      </p>
-                    </div>
-
-                    <div className="backdrop-blur-md bg-white/5 border border-white/10 rounded-2xl p-6 relative overflow-hidden shadow-xl">
-                      <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider block">
-                        Current RAM Load
-                      </span>
-                      <h3 className="text-2xl font-extrabold mt-2 text-indigo-400">
-                        {telemetryData[
-                          telemetryData.length - 1
-                        ].ramUsage.toFixed(1)}
-                        %
-                      </h3>
-                      <p className="text-[10px] text-slate-500 mt-2">
-                        Latest telemetry snapshot
-                      </p>
-                    </div>
-
-                    <div className="backdrop-blur-md bg-white/5 border border-white/10 rounded-2xl p-6 relative overflow-hidden shadow-xl">
-                      <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider block">
-                        System State
-                      </span>
-                      <h3 className="text-2xl font-extrabold mt-2 text-emerald-400">
-                        ONLINE
-                      </h3>
-                      <p className="text-[10px] text-slate-500 mt-2">
-                        Receiving telemetry logs
-                      </p>
-                    </div>
-                  </div>
-
-                  {/* Two-Column Graphs */}
-                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                    {/* Line Chart */}
-                    <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 lg:col-span-2 shadow-xl space-y-6">
-                      <div>
-                        <h3 className="font-bold text-lg text-white">
-                          System Utilization Over Time
-                        </h3>
-                        <p className="text-xs text-slate-400">
-                          Real-time load statistics tracking CPU vs memory usage
-                          cycles.
-                        </p>
-                      </div>
-
-                      <div className="h-80 w-full">
-                        <ResponsiveContainer width="100%" height="100%">
-                          <LineChart
-                            data={telemetryData}
-                            margin={{ top: 10, right: 30, left: 10, bottom: 5 }}
-                          >
-                            <CartesianGrid
-                              strokeDasharray="3 3"
-                              stroke="#1e293b"
-                            />
-                            <XAxis
-                              dataKey="timestamp"
-                              stroke="#94a3b8"
-                              fontSize={10}
-                              tickLine={false}
-                              tickFormatter={(tick) =>
-                                new Date(tick).toLocaleTimeString([], {
-                                  hour: "2-digit",
-                                  minute: "2-digit",
-                                  second: "2-digit",
-                                })
-                              }
-                            />
-                            <YAxis
-                              stroke="#94a3b8"
-                              fontSize={10}
-                              domain={[0, 100]}
-                              tickLine={false}
-                              axisLine={false}
-                            />
-                            <Tooltip
-                              labelFormatter={(label) =>
-                                new Date(label).toLocaleString()
-                              }
-                            />
-                            <Legend verticalAlign="top" height={36} />
-                            <Line
-                              type="monotone"
-                              dataKey="cpuUsage"
-                              name="CPU Usage (%)"
-                              stroke="#C4634F"
-                              strokeWidth={2}
-                              dot={false}
-                              activeDot={{ r: 6 }}
-                            />
-                            <Line
-                              type="monotone"
-                              dataKey="ramUsage"
-                              name="RAM Usage (%)"
-                              stroke="#6366f1"
-                              strokeWidth={2}
-                              dot={false}
-                              activeDot={{ r: 6 }}
-                            />
-                          </LineChart>
-                        </ResponsiveContainer>
-                      </div>
-                    </div>
-
-                    {/* Pie Chart & Comparative Hours */}
-                    <div className="space-y-8 flex flex-col justify-between">
-                      {/* Pie Chart */}
-                      <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl flex-1 space-y-4 flex flex-col justify-between">
-                        <div>
-                          <h3 className="font-bold text-sm text-white">
-                            Device Application Share
-                          </h3>
-                          <span className="text-[10px] text-slate-500 block">
-                            Active window category share
-                          </span>
-                        </div>
-
-                        {pieData.length > 0 ? (
-                          <div className="h-44 w-full relative">
-                            <ResponsiveContainer width="100%" height="100%">
-                              <PieChart>
-                                <Pie
-                                  data={pieData}
-                                  cx="50%"
-                                  cy="50%"
-                                  innerRadius={45}
-                                  outerRadius={65}
-                                  paddingAngle={5}
-                                  dataKey="value"
-                                >
-                                  {pieData.map((_, index) => (
-                                    <Cell
-                                      key={`cell-${index}`}
-                                      fill={
-                                        PIE_COLORS[index % PIE_COLORS.length]
-                                      }
-                                    />
-                                  ))}
-                                </Pie>
-                                <Tooltip
-                                  formatter={(value) => [
-                                    `${value} logs`,
-                                    "Duration",
-                                  ]}
-                                />
-                                <Legend
-                                  layout="horizontal"
-                                  align="center"
-                                  verticalAlign="bottom"
-                                />
-                              </PieChart>
-                            </ResponsiveContainer>
-                          </div>
-                        ) : (
-                          <div className="flex-1 flex items-center justify-center text-slate-400 text-xs">
-                            No application logs found.
-                          </div>
-                        )}
-                      </div>
-
-                      {/* Device Usage Ledger */}
-                      <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl space-y-4">
-                        <div>
-                          <h3 className="font-bold text-sm text-white">
-                            Device Usage Ledger
-                          </h3>
-                          <span className="text-[10px] text-slate-500 block">
-                            Total active usage hours for each registered device
-                          </span>
-                        </div>
-
-                        <div className="space-y-3">
-                          {summaryData?.deviceUsages &&
-                          summaryData.deviceUsages.length > 0 ? (
-                            summaryData.deviceUsages.map((dev) => (
-                              <div
-                                key={dev.deviceId}
-                                className="flex justify-between items-center bg-slate-800/35 p-3 rounded-xl border border-slate-800/50"
-                              >
-                                <div>
-                                  <span className="font-semibold text-xs text-white block uppercase tracking-wider">
-                                    {dev.deviceId}
-                                  </span>
-                                  <span className="text-[10px] text-indigo-400 capitalize">
-                                    Owner: {dev.ownerName}
-                                  </span>
-                                </div>
-                                <div className="text-right">
-                                  <span className="text-xs font-bold text-indigo-400 block">
-                                    {dev.usageHours.toFixed(1)} hrs
-                                  </span>
-                                  <span className="text-[10px] text-slate-500">
-                                    {dev.usagePercent.toFixed(1)}% share
-                                  </span>
-                                </div>
-                              </div>
-                            ))
-                          ) : (
-                            <p className="text-slate-500 text-xs py-4 text-center">
-                              No active devices right now — all quiet in the
-                              house.
-                            </p>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </>
-              ) : (
-                <div className="flex flex-col items-center justify-center h-96 gap-4 bg-slate-900/40 border border-slate-800 rounded-2xl p-8">
-                  <span className="text-4xl">🔌</span>
-                  <h3 className="text-lg font-bold text-white font-serif">
-                    Device Desk is Offline
-                  </h3>
-                  <p className="text-slate-400 text-sm text-center max-w-sm">
-                    No telemetry records exist for this device yet. Start the
-                    python telemetry agent to share health snapshots.
-                  </p>
-                </div>
-              )}
+              </div>
             </div>
           )}
 
@@ -4103,7 +3363,7 @@ export default function Dashboard() {
                                     {user.prevMealDue !== 0 && (
                                       <span className="text-[10px] text-slate-500 block">
                                         Prev: {user.prevMealDue >= 0 ? "+" : ""}
-                                        {currencySymbol}{user.prevMealDue.toFixed(0)}
+                                        {currencySymbol}{user.prevMealDue % 1 === 0 ? user.prevMealDue.toFixed(0) : user.prevMealDue.toString()}
                                       </span>
                                     )}
                                   </td>
@@ -4115,8 +3375,8 @@ export default function Dashboard() {
                                     {user.walletGiven !== 0 ||
                                     user.walletReceived !== 0 ? (
                                       <span className="text-[10px] text-slate-500 block leading-tight">
-                                        Given: {currencySymbol}{user.walletGiven.toFixed(0)} |
-                                        Recv: {currencySymbol}{user.walletReceived.toFixed(0)}
+                                        Given: {currencySymbol}{user.walletGiven % 1 === 0 ? user.walletGiven.toFixed(0) : user.walletGiven.toString()} |
+                                        Recv: {currencySymbol}{user.walletReceived % 1 === 0 ? user.walletReceived.toFixed(0) : user.walletReceived.toString()}
                                         <br />
                                         Net:{" "}
                                         {user.walletGiven -
@@ -4124,7 +3384,7 @@ export default function Dashboard() {
                                         0
                                           ? "+"
                                           : ""}
-                                        {currencySymbol}{(user.netBazarPaid || 0).toFixed(0)}
+                                        {currencySymbol}{(user.netBazarPaid || 0) % 1 === 0 ? (user.netBazarPaid || 0).toFixed(0) : (user.netBazarPaid || 0).toString()}
                                       </span>
                                     ) : null}
                                   </td>
@@ -4142,12 +3402,12 @@ export default function Dashboard() {
                                       {Math.abs(user.utilityDue).toFixed(2)}
                                     </div>
                                     <span className="text-[10px] text-slate-500 block leading-tight">
-                                      Share: {currencySymbol}{user.utilityShare.toFixed(0)} |
+                                      Share: {currencySymbol}{user.utilityShare % 1 === 0 ? user.utilityShare.toFixed(0) : user.utilityShare.toString()} |
                                       Prev:{" "}
                                       {user.prevUtilityDue >= 0 ? "+" : ""}{currencySymbol}
-                                      {user.prevUtilityDue.toFixed(0)}
+                                      {user.prevUtilityDue % 1 === 0 ? user.prevUtilityDue.toFixed(0) : user.prevUtilityDue.toString()}
                                       <br />
-                                      Paid: -{currencySymbol}{user.utilityPayment.toFixed(0)}
+                                      Paid: -{currencySymbol}{user.utilityPayment % 1 === 0 ? user.utilityPayment.toFixed(0) : user.utilityPayment.toString()}
                                     </span>
                                   </td>
                                   <td className="py-5 px-3 text-right font-medium text-slate-300">
@@ -5252,10 +4512,6 @@ export default function Dashboard() {
           isActive={consentStatus.isActive}
           onConsentChanged={() => {
             fetchConsentStatus();
-            if (!consentStatus.isActive) {
-              setUsageSummary(null);
-              setUntaggedApps([]);
-            }
           }}
           onClose={() => setShowTrackingSettings(false)}
         />
@@ -5264,6 +4520,75 @@ export default function Dashboard() {
       {/* Device Download Help Modal */}
       {showDownloadHelp && (
         <DeviceDownloadHelp onClose={() => setShowDownloadHelp(false)} />
+      )}
+
+      {/* LifeOS Pro Upgrade Modal */}
+      {showProModal && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-50 flex items-center justify-center p-4 animate-fade-in">
+          <div className="bg-[#251B17] border border-[#382923] rounded-3xl p-6 md:p-8 max-w-md w-full shadow-2xl space-y-6 relative overflow-hidden">
+            <div className="flex justify-between items-center border-b border-[#382923] pb-4">
+              <div className="flex items-center gap-2">
+                <Crown size={20} className="text-[#EBC161]" />
+                <h3 className="font-serif font-black text-lg text-[#FAF6F0]">
+                  LifeOS Pro Subscription
+                </h3>
+              </div>
+              <button
+                onClick={() => setShowProModal(false)}
+                className="text-[#A69788] hover:text-[#FAF6F0] p-1 rounded-lg bg-transparent border-0 cursor-pointer text-sm"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="bg-[#1C1512] border border-[#382923] rounded-2xl p-5 text-center space-y-2">
+              <span className="text-[10px] text-[#A69788] uppercase font-bold tracking-widest">
+                Household Plan
+              </span>
+              <div className="text-3xl font-black text-[#E38D73]">
+                {currencySymbol === "৳" ? "৳499" : "$4.99"}
+                <span className="text-xs text-[#A69788] font-normal"> / month</span>
+              </div>
+              <p className="text-[11px] text-[#A69788]">
+                One subscription unlocks Pro for all members of <strong className="text-[#FAF6F0]">{homeName}</strong>.
+              </p>
+            </div>
+
+            <div className="space-y-2 text-xs text-[#D9CEC1]">
+              <div className="flex items-center gap-2.5">
+                <Check size={15} className="text-[#A0B095]" />
+                <span>Full Device Desk Telemetry & GPU tracking</span>
+              </div>
+              <div className="flex items-center gap-2.5">
+                <Check size={15} className="text-[#A0B095]" />
+                <span>Unlimited PC pairing & activity history</span>
+              </div>
+              <div className="flex items-center gap-2.5">
+                <Check size={15} className="text-[#A0B095]" />
+                <span>Priority support & instant cloud syncing</span>
+              </div>
+            </div>
+
+            <div className="pt-2 space-y-2">
+              <button
+                onClick={() => {
+                  alert("Thank you for your interest! Pro subscription checkout will open shortly.");
+                  setShowProModal(false);
+                }}
+                className="w-full bg-[#E38D73] hover:bg-[#F2A38A] text-[#1C1512] font-bold text-xs py-3.5 rounded-2xl transition-all shadow-md cursor-pointer flex items-center justify-center gap-2"
+              >
+                <Sparkles size={16} />
+                <span>Subscribe Now →</span>
+              </button>
+              <button
+                onClick={() => setShowProModal(false)}
+                className="w-full bg-transparent text-[#A69788] hover:text-[#FAF6F0] text-xs py-2 cursor-pointer border-none font-medium"
+              >
+                Maybe Later
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

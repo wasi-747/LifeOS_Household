@@ -6,16 +6,17 @@ const User = require("../models/User");
 const JWT_SECRET = process.env.JWT_SECRET || "cozy_lifeos_secret_key";
 
 const createTransporter = () => {
-  const user = (process.env.EMAIL_USER || "lifeos.household@gmail.com").trim();
-  const pass = (process.env.EMAIL_PASS || "lqnzjlbbiaxyrvvz").replace(/\s+/g, "");
+  const user = process.env.EMAIL_USER;
+  const pass = process.env.EMAIL_PASS;
+  if (!user || !pass) return null;
 
   return nodemailer.createTransport({
     host: "smtp.gmail.com",
     port: 465,
     secure: true,
     auth: {
-      user,
-      pass,
+      user: user.trim(),
+      pass: pass.replace(/\s+/g, ""),
     },
     tls: {
       rejectUnauthorized: false,
@@ -262,8 +263,14 @@ exports.forgotPassword = async (req, res) => {
 
     // 2. Fallback to Nodemailer SMTP
     const transporter = createTransporter();
+    if (!transporter) {
+      return res.status(500).json({
+        error: "Email service configuration (RESEND_API_KEY or EMAIL_USER/EMAIL_PASS) is not configured on server.",
+      });
+    }
+
     const mailOptions = {
-      from: '"LifeOS Household" <lifeos.household@gmail.com>',
+      from: `"LifeOS Household" <${process.env.EMAIL_USER || "no-reply@lifeos.dev"}>`,
       to: user.email,
       subject: `🔑 Your LifeOS Password Reset Key: ${otp}`,
       html: emailHtml,
