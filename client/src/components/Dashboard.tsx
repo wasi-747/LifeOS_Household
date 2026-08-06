@@ -37,6 +37,7 @@ import ConfirmDialog from "./ConfirmDialog";
 import DeviceConsentModal from "./DeviceConsentModal";
 import DeviceTrackingSettings from "./DeviceTrackingSettings";
 import DeviceDownloadHelp from "./DeviceDownloadHelp";
+import HouseChat from "./HouseChat";
 
 
 interface UserStanding {
@@ -145,7 +146,7 @@ export default function Dashboard() {
   };
 
   const [activeTab, setActiveTab] = useState<
-    "dashboard" | "hardware" | "tracker" | "notepad" | "history"
+    "dashboard" | "hardware" | "tracker" | "notepad" | "history" | "chat"
   >("dashboard");
 
   useEffect(() => {
@@ -1674,6 +1675,18 @@ export default function Dashboard() {
               )}
             </button>
             <button
+              id="sidebar-tab-chat"
+              onClick={() => setActiveTab("chat")}
+              className={`relative w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200 cursor-pointer ${
+                activeTab === "chat"
+                  ? "bg-indigo-600/15 text-indigo-400 border-l-4 border-indigo-500"
+                  : "text-slate-400 hover:bg-slate-800 hover:text-slate-200"
+              }`}
+            >
+              <MessageSquare size={18} />
+              <span>House Chat</span>
+            </button>
+            <button
               id="sidebar-tab-hardware"
               onClick={() => setActiveTab("hardware")}
               className={`relative w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200 cursor-pointer ${
@@ -2004,6 +2017,11 @@ export default function Dashboard() {
 
         {/* Content Container */}
         <div className="p-8 space-y-8 flex-1">
+          {/* House Chat View */}
+          {activeTab === "chat" && (
+            <HouseChat currentUser={currentUser} />
+          )}
+
           {/* Hardware & Telemetry View - Locked Behind LifeOS Pro Subscription */}
           {activeTab === "hardware" && (
             <div id="device-desk-container" className="space-y-6 animate-fade-in">

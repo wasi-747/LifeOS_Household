@@ -14,6 +14,7 @@ const notepadController = require("../controllers/notepadController");
 const auditController = require("../controllers/auditController");
 const deviceUsageController = require("../controllers/deviceUsageController");
 const deviceConsentController = require("../controllers/deviceConsentController");
+const chatController = require("../controllers/chatController");
 
 // Middleware
 const authMiddleware = require("../middleware/authMiddleware");
@@ -191,5 +192,10 @@ router.delete("/notepad/:noteId", authMiddleware, notepadController.deleteNote);
 
 // Protected Audit History Endpoints
 router.get("/audit/:monthId", authMiddleware, auditController.getAuditLogs);
+
+// Protected House Chat Endpoints
+router.get("/chat", authMiddleware, chatController.getMessages);
+router.post("/chat", authMiddleware, chatController.sendMessage);
+router.delete("/chat/:id", authMiddleware, chatController.deleteMessage);
 
 module.exports = router;
