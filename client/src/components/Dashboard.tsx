@@ -3410,10 +3410,6 @@ export default function Dashboard() {
                         <QuickActionWidget
                           monthId={monthId}
                           daysInMonth={trackerData?.daysInMonth || 30}
-                          users={summaryData.userStandings.map((u) => ({
-                            _id: u.userId,
-                            name: u.name,
-                          }))}
                           currencySymbol={currencySymbol}
                           activeUserId={activeUserId}
                           activeUserName={activeUserName}

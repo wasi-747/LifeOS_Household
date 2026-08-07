@@ -1,12 +1,11 @@
 import React, { useState } from "react";
-import { Zap, ShoppingBag, DollarSign, Calendar, User, Check, Loader2 } from "lucide-react";
-import SmartMathInput from "./SmartMathInput";
+import { Zap, ShoppingBag, DollarSign, Calendar, Plus, Trash2, Check, Loader2, User } from "lucide-react";
+import SmartMathInput, { evaluateMathExpression } from "./SmartMathInput";
 import api from "../services/api";
 
 interface QuickActionWidgetProps {
   monthId: string;
   daysInMonth: number;
-  users: Array<{ _id: string; name: string }>;
   currencySymbol?: string;
   activeUserId: string;
   activeUserName: string;
@@ -14,10 +13,15 @@ interface QuickActionWidgetProps {
   showAlert: (title: string, msg: string) => void;
 }
 
+interface GroceryItem {
+  id: string;
+  name: string;
+  price: string;
+}
+
 export default function QuickActionWidget({
   monthId,
   daysInMonth,
-  users,
   currencySymbol = "৳",
   activeUserId,
   activeUserName,
@@ -30,68 +34,117 @@ export default function QuickActionWidget({
 
   // Today's day of month
   const todayDay = Math.min(new Date().getDate(), daysInMonth || 30);
-
-  // Common Form States
   const [selectedDay, setSelectedDay] = useState<number>(todayDay);
-  const [selectedUser, setSelectedUser] = useState<string>(
-    users[0]?._id || activeUserId || ""
-  );
-  const [assignedUser, setAssignedUser] = useState<string>("");
-  const [amount, setAmount] = useState<string>("");
-  const [note, setNote] = useState<string>("");
+
+  // Grocery Items List State
+  const [groceryItems, setGroceryItems] = useState<GroceryItem[]>([
+    { id: "1", name: "Alu (Potato)", price: "60" },
+    { id: "2", name: "Piaz (Onion)", price: "120" },
+  ]);
+
+  // Deposit Form State
+  const [depositAmount, setDepositAmount] = useState<string>("");
+  const [depositNote, setDepositNote] = useState<string>("");
+
+  const addGroceryItem = () => {
+    setGroceryItems((prev) => [
+      ...prev,
+      { id: Date.now().toString(), name: "", price: "" },
+    ]);
+  };
+
+  const removeGroceryItem = (id: string) => {
+    setGroceryItems((prev) => prev.filter((i) => i.id !== id));
+  };
+
+  const updateGroceryItem = (id: string, field: "name" | "price", val: string) => {
+    setGroceryItems((prev) =>
+      prev.map((i) => (i.id === id ? { ...i, [field]: val } : i))
+    );
+  };
+
+  // Compute Itemized Total for Grocery Items
+  const groceryTotal = groceryItems.reduce((sum, item) => {
+    const val = evaluateMathExpression(item.price) || parseFloat(item.price) || 0;
+    return sum + val;
+  }, 0);
 
   const triggerSuccessNotice = (msg: string) => {
     setSuccessMsg(msg);
     setTimeout(() => setSuccessMsg(null), 3000);
   };
 
-  const handleQuickSubmit = async (e: React.FormEvent) => {
+  const handleGrocerySubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedUser || !amount || submitting) return;
+    if (groceryTotal <= 0 || submitting) return;
 
     setSubmitting(true);
     try {
-      const numericAmount = parseFloat(amount) || 0;
+      // Build item details note string (e.g., "Alu (Potato) 60, Piaz (Onion) 120")
+      const itemDetails = groceryItems
+        .filter((i) => (parseFloat(i.price) || 0) > 0 || i.name.trim())
+        .map((i) => `${i.name.trim() || "Item"} ${i.price}`)
+        .join(", ");
 
-      if (actionTab === "bazar") {
-        await api.post("/tracker/bazar/update", {
-          monthId,
-          day: selectedDay,
-          userId: selectedUser,
-          amount: numericAmount,
-          assignedUser: assignedUser || null,
-          note: note.trim() || null,
-          activeUserId,
-          activeUserName,
-        });
+      await api.post("/tracker/bazar/update", {
+        monthId,
+        day: selectedDay,
+        userId: activeUserId,
+        amount: groceryTotal,
+        note: itemDetails || null,
+        activeUserId,
+        activeUserName,
+      });
 
-        triggerSuccessNotice(
-          `Recorded ${currencySymbol}${numericAmount.toFixed(2)} grocery expense for Day ${selectedDay}!`
-        );
-      } else {
-        await api.post("/tracker/deposits/update", {
-          monthId,
-          day: selectedDay,
-          userId: selectedUser,
-          amount: numericAmount,
-          note: note.trim() || null,
-          activeUserId,
-          activeUserName,
-        });
+      triggerSuccessNotice(
+        `Recorded ${currencySymbol}${groceryTotal.toFixed(2)} grocery expense for Day ${selectedDay}!`
+      );
 
-        triggerSuccessNotice(
-          `Logged ${currencySymbol}${numericAmount.toFixed(2)} deposit for Day ${selectedDay}!`
-        );
-      }
-
-      setAmount("");
-      setNote("");
+      // Reset items list
+      setGroceryItems([
+        { id: "1", name: "", price: "" },
+      ]);
       onRefresh();
     } catch (err: any) {
       console.error("Quick Action Error:", err);
       showAlert(
         "Action Failed",
-        err.response?.data?.error || "Failed to record transaction."
+        err.response?.data?.error || "Failed to record grocery expense."
+      );
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleDepositSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const numericAmount = parseFloat(depositAmount) || 0;
+    if (numericAmount <= 0 || submitting) return;
+
+    setSubmitting(true);
+    try {
+      await api.post("/tracker/deposits/update", {
+        monthId,
+        day: selectedDay,
+        userId: activeUserId,
+        amount: numericAmount,
+        note: depositNote.trim() || null,
+        activeUserId,
+        activeUserName,
+      });
+
+      triggerSuccessNotice(
+        `Logged ${currencySymbol}${numericAmount.toFixed(2)} meal deposit for Day ${selectedDay}!`
+      );
+
+      setDepositAmount("");
+      setDepositNote("");
+      onRefresh();
+    } catch (err: any) {
+      console.error("Quick Action Error:", err);
+      showAlert(
+        "Action Failed",
+        err.response?.data?.error || "Failed to record meal deposit."
       );
     } finally {
       setSubmitting(false);
@@ -116,11 +169,14 @@ export default function QuickActionWidget({
             <h3 className="font-serif font-black text-lg text-[#FAF6F0] flex items-center gap-2">
               Quick Action Entry
               <span className="text-[10px] font-sans font-bold px-2.5 py-0.5 rounded-full bg-[#E38D73]/10 text-[#E38D73] border border-[#E38D73]/20">
-                INSTANT SYNC
+                AUTO-SYNC
               </span>
             </h3>
-            <p className="text-xs text-[#A69788]">
-              Log date-specific grocery expenses and roommate deposits instantly
+            <p className="text-xs text-[#A69788] flex items-center gap-1 mt-0.5">
+              <span>Logged in as:</span>
+              <strong className="text-[#FAF6F0] flex items-center gap-1">
+                <User size={12} className="text-[#E38D73]" /> {activeUserName || "You"}
+              </strong>
             </p>
           </div>
         </div>
@@ -137,7 +193,7 @@ export default function QuickActionWidget({
             }`}
           >
             <ShoppingBag size={14} />
-            <span>Grocery Expense</span>
+            <span>Grocery Items</span>
           </button>
 
           <button
@@ -163,130 +219,165 @@ export default function QuickActionWidget({
         </div>
       )}
 
-      {/* Form Grid */}
-      <form onSubmit={handleQuickSubmit} className="space-y-4">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          {/* Day / Date Selector */}
-          <div className="space-y-1.5">
-            <label className="text-[10px] font-bold text-[#A69788] uppercase tracking-wider flex items-center gap-1">
-              <Calendar size={12} className="text-[#E38D73]" /> Date (Day of Month)
-            </label>
-            <select
-              value={selectedDay}
-              onChange={(e) => setSelectedDay(parseInt(e.target.value) || 1)}
-              className="w-full bg-[#1C1512] border border-[#382923] focus:border-[#E38D73] rounded-2xl px-3 py-2 text-xs text-[#FAF6F0] font-bold focus:outline-none cursor-pointer"
-            >
-              {Array.from({ length: daysInMonth || 30 }, (_, i) => i + 1).map((d) => (
-                <option key={d} value={d}>
-                  Day {d} {d === todayDay ? "(Today)" : ""}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          {/* Paid By Roommate */}
-          <div className="space-y-1.5">
-            <label className="text-[10px] font-bold text-[#A69788] uppercase tracking-wider flex items-center gap-1">
-              <User size={12} className="text-[#E38D73]" /> {actionTab === "bazar" ? "Paid By Roommate" : "Depositor Roommate"}
-            </label>
-            <select
-              value={selectedUser}
-              onChange={(e) => setSelectedUser(e.target.value)}
-              className="w-full bg-[#1C1512] border border-[#382923] focus:border-[#E38D73] rounded-2xl px-3 py-2 text-xs text-[#FAF6F0] font-bold focus:outline-none cursor-pointer"
-            >
-              {users.map((u) => (
-                <option key={u._id} value={u._id}>
-                  {u.name} {u._id === activeUserId ? "(You)" : ""}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          {/* Roommate Assignment for Bazar / Info Badge */}
-          {actionTab === "bazar" ? (
-            <div className="space-y-1.5">
-              <label className="text-[10px] font-bold text-[#A69788] uppercase tracking-wider flex items-center gap-1">
-                <User size={12} className="text-[#E38D73]" /> Assigned Purchaser / Duty Member
-              </label>
+      {/* Tab 1: Itemized Grocery List Log */}
+      {actionTab === "bazar" && (
+        <form onSubmit={handleGrocerySubmit} className="space-y-4">
+          <div className="flex items-center justify-between gap-4 bg-[#1C1512] p-3 border border-[#382923] rounded-2xl">
+            <div className="flex items-center gap-2">
+              <Calendar size={15} className="text-[#E38D73]" />
+              <span className="text-xs font-bold text-[#A69788]">Date:</span>
               <select
-                value={assignedUser}
-                onChange={(e) => setAssignedUser(e.target.value)}
-                className="w-full bg-[#1C1512] border border-[#382923] focus:border-[#E38D73] rounded-2xl px-3 py-2 text-xs text-[#FAF6F0] font-semibold focus:outline-none cursor-pointer"
+                value={selectedDay}
+                onChange={(e) => setSelectedDay(parseInt(e.target.value) || 1)}
+                className="bg-[#251B17] border border-[#382923] focus:border-[#E38D73] rounded-xl px-2.5 py-1 text-xs text-[#FAF6F0] font-bold focus:outline-none cursor-pointer"
               >
-                <option value="">-- Unassigned --</option>
-                {users.map((u) => (
-                  <option key={u._id} value={u._id}>
-                    {u.name}
+                {Array.from({ length: daysInMonth || 30 }, (_, i) => i + 1).map((d) => (
+                  <option key={d} value={d}>
+                    Day {d} {d === todayDay ? "(Today)" : ""}
                   </option>
                 ))}
               </select>
             </div>
-          ) : (
+
+            <div className="text-right">
+              <span className="text-[10px] text-[#A69788] uppercase font-bold block">
+                Calculated Total
+              </span>
+              <span className="text-xl font-serif font-black text-[#E38D73]">
+                {currencySymbol}{groceryTotal.toFixed(2)}
+              </span>
+            </div>
+          </div>
+
+          {/* Itemized Rows */}
+          <div className="space-y-2 max-h-56 overflow-y-auto pr-1">
+            {groceryItems.map((item) => (
+              <div key={item.id} className="flex items-center gap-2">
+                <input
+                  type="text"
+                  placeholder="Item Name (e.g. Alu, Piaz, Mach)"
+                  value={item.name}
+                  onChange={(e) => updateGroceryItem(item.id, "name", e.target.value)}
+                  className="flex-1 bg-[#1C1512] border border-[#382923] focus:border-[#E38D73] rounded-2xl px-3 py-2 text-xs text-[#FAF6F0] focus:outline-none placeholder-[#78695C] font-medium"
+                />
+                <div className="flex items-center w-36 bg-[#1C1512] border border-[#382923] focus-within:border-[#E38D73] rounded-2xl px-3 py-2">
+                  <span className="text-[10px] text-[#A69788] mr-1">{currencySymbol}</span>
+                  <input
+                    type="text"
+                    placeholder="Price (60 or 50+10)"
+                    value={item.price}
+                    onChange={(e) => updateGroceryItem(item.id, "price", e.target.value)}
+                    className="w-full bg-transparent border-none text-xs text-[#FAF6F0] text-right focus:outline-none font-bold"
+                  />
+                </div>
+                {groceryItems.length > 1 && (
+                  <button
+                    type="button"
+                    onClick={() => removeGroceryItem(item.id)}
+                    className="text-[#78695C] hover:text-rose-450 p-1 bg-transparent border-0 cursor-pointer shrink-0"
+                    title="Remove item"
+                  >
+                    <Trash2 size={15} />
+                  </button>
+                )}
+              </div>
+            ))}
+          </div>
+
+          {/* Add Item & Submit Buttons */}
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-1">
+            <button
+              type="button"
+              onClick={addGroceryItem}
+              className="w-full sm:w-auto bg-[#1C1512] hover:bg-[#382923] border border-[#382923] text-xs text-[#E38D73] font-bold px-4 py-2.5 rounded-2xl transition-all cursor-pointer flex items-center justify-center gap-1.5"
+            >
+              <Plus size={14} />
+              <span>Add Item</span>
+            </button>
+
+            <button
+              type="submit"
+              disabled={groceryTotal <= 0 || submitting}
+              className="w-full sm:w-auto bg-[#E38D73] hover:bg-[#F2A38A] disabled:opacity-40 text-[#1C1512] font-black text-xs px-6 py-2.5 rounded-2xl transition-all shadow-xl cursor-pointer flex items-center justify-center gap-2 border-0"
+            >
+              {submitting ? (
+                <Loader2 size={16} className="animate-spin text-[#1C1512]" />
+              ) : (
+                <>
+                  <Zap size={15} />
+                  <span>
+                    Log Grocery Expense ({currencySymbol}{groceryTotal.toFixed(2)}) for Day {selectedDay}
+                  </span>
+                </>
+              )}
+            </button>
+          </div>
+        </form>
+      )}
+
+      {/* Tab 2: Meal Deposit Log */}
+      {actionTab === "deposit" && (
+        <form onSubmit={handleDepositSubmit} className="space-y-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {/* Day / Date Selector */}
             <div className="space-y-1.5">
               <label className="text-[10px] font-bold text-[#A69788] uppercase tracking-wider flex items-center gap-1">
-                <DollarSign size={12} className="text-[#A0B095]" /> Category
+                <Calendar size={12} className="text-[#A0B095]" /> Deposit Date
               </label>
-              <div className="w-full bg-[#1C1512] border border-[#382923] rounded-2xl px-3 py-2 text-xs text-[#A0B095] font-bold flex items-center gap-1.5">
-                <span className="w-2 h-2 rounded-full bg-[#A0B095]" />
-                <span>Meal Account Deposit</span>
-              </div>
+              <select
+                value={selectedDay}
+                onChange={(e) => setSelectedDay(parseInt(e.target.value) || 1)}
+                className="w-full bg-[#1C1512] border border-[#382923] focus:border-[#A0B095] rounded-2xl px-3 py-2.5 text-xs text-[#FAF6F0] font-bold focus:outline-none cursor-pointer"
+              >
+                {Array.from({ length: daysInMonth || 30 }, (_, i) => i + 1).map((d) => (
+                  <option key={d} value={d}>
+                    Day {d} {d === todayDay ? "(Today)" : ""}
+                  </option>
+                ))}
+              </select>
             </div>
-          )}
 
-          {/* Amount Input with SmartMathInput */}
-          <div className="space-y-1.5">
-            <label className="text-[10px] font-bold text-[#A69788] uppercase tracking-wider flex items-center gap-1">
-              <DollarSign size={12} className="text-[#E38D73]" /> Amount ({currencySymbol})
-            </label>
-            <div className="w-full">
+            {/* Deposit Amount Input */}
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-bold text-[#A69788] uppercase tracking-wider flex items-center gap-1">
+                <DollarSign size={12} className="text-[#A0B095]" /> Deposit Amount ({currencySymbol})
+              </label>
               <SmartMathInput
-                value={amount}
-                onChange={(val) => setAmount(val)}
-                placeholder="0 or 120+85+40"
-                className="w-full bg-[#1C1512] border border-[#382923] focus:border-[#E38D73] rounded-2xl px-3 py-2 text-xs text-[#FAF6F0] font-bold focus:outline-none"
+                value={depositAmount}
+                onChange={(val) => setDepositAmount(val)}
+                placeholder="0 or 500+200"
+                className="w-full bg-[#1C1512] border border-[#382923] focus:border-[#A0B095] rounded-2xl px-3 py-2.5 text-xs text-[#FAF6F0] font-bold focus:outline-none"
               />
             </div>
           </div>
-        </div>
 
-        {/* Note/Memo Input & Submit Button */}
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 pt-1">
-          <div className="flex-1 relative">
+          {/* Deposit Note & Submit */}
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
             <input
               type="text"
-              placeholder={
-                actionTab === "bazar"
-                  ? "Item Memo (e.g. Alu 60, Piaz 120, Mach 450)..."
-                  : "Deposit Note (e.g. Hand Cash / Bkash Transfer)..."
-              }
-              value={note}
-              onChange={(e) => setNote(e.target.value)}
-              className="w-full bg-[#1C1512] border border-[#382923] focus:border-[#E38D73] rounded-2xl px-4 py-2.5 text-xs text-[#FAF6F0] placeholder-[#78695C] focus:outline-none font-medium"
+              placeholder="Deposit Note (e.g. Bkash / Hand Cash to Manager)..."
+              value={depositNote}
+              onChange={(e) => setDepositNote(e.target.value)}
+              className="flex-1 bg-[#1C1512] border border-[#382923] focus:border-[#A0B095] rounded-2xl px-4 py-2.5 text-xs text-[#FAF6F0] placeholder-[#78695C] focus:outline-none font-medium"
             />
-          </div>
 
-          <button
-            type="submit"
-            disabled={!amount || submitting}
-            className={`px-6 py-2.5 rounded-2xl text-xs font-black transition-all shadow-xl cursor-pointer flex items-center justify-center gap-2 shrink-0 border-0 disabled:opacity-40 ${
-              actionTab === "bazar"
-                ? "bg-[#E38D73] hover:bg-[#F2A38A] text-[#1C1512]"
-                : "bg-[#A0B095] hover:bg-[#B5C5AA] text-[#1C1512]"
-            }`}
-          >
-            {submitting ? (
-              <Loader2 size={16} className="animate-spin text-[#1C1512]" />
-            ) : (
-              <>
-                <Zap size={15} />
-                <span>
-                  {actionTab === "bazar" ? "Log Grocery Expense" : "Log Meal Deposit"}
-                </span>
-              </>
-            )}
-          </button>
-        </div>
-      </form>
+            <button
+              type="submit"
+              disabled={!depositAmount || submitting}
+              className="bg-[#A0B095] hover:bg-[#B5C5AA] disabled:opacity-40 text-[#1C1512] font-black text-xs px-6 py-2.5 rounded-2xl transition-all shadow-xl cursor-pointer flex items-center justify-center gap-2 shrink-0 border-0"
+            >
+              {submitting ? (
+                <Loader2 size={16} className="animate-spin text-[#1C1512]" />
+              ) : (
+                <>
+                  <Zap size={15} />
+                  <span>Log Meal Deposit for Day {selectedDay}</span>
+                </>
+              )}
+            </button>
+          </div>
+        </form>
+      )}
     </div>
   );
 }
