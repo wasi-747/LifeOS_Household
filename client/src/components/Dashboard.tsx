@@ -42,6 +42,7 @@ import DeviceDownloadHelp from "./DeviceDownloadHelp";
 import HouseChat from "./HouseChat";
 import SmartMathInput from "./SmartMathInput";
 import QuickCalculatorModal from "./QuickCalculatorModal";
+import QuickActionWidget from "./QuickActionWidget";
 
 
 interface UserStanding {
@@ -3404,6 +3405,21 @@ export default function Dashboard() {
                             </div>
                           </div>
                         </div>
+
+                        {/* Quick Action Entry Widget */}
+                        <QuickActionWidget
+                          monthId={monthId}
+                          daysInMonth={trackerData?.daysInMonth || 30}
+                          users={summaryData.userStandings.map((u) => ({
+                            _id: u.userId,
+                            name: u.name,
+                          }))}
+                          currencySymbol={currencySymbol}
+                          activeUserId={activeUserId}
+                          activeUserName={activeUserName}
+                          onRefresh={fetchSummary}
+                          showAlert={showAlert}
+                        />
                       </>
                     ) : (
                       <div
