@@ -3433,17 +3433,17 @@ export default function Dashboard() {
                           <h3 className="font-bold text-lg text-white">
                             Roommate Standing Statement
                           </h3>
-                          <span title="Final Balance = Food Balance + Utility Balance + Rent Balance. Positive (+) means refund is owed to the roommate; Negative (-) means roommate owes money.">
+                          <span title="Independent breakdown of Food Due, Utility Due, and Rent Due for each roommate.">
                             <HelpCircle size={15} className="text-slate-400 hover:text-slate-200 cursor-pointer" />
                           </span>
                         </div>
                         <p className="text-xs text-slate-400">
-                          Detailed breakdown of individual roommate balances and calculated final standings.
+                          Detailed breakdown of individual roommate balances for Food, Utilities, and Rent.
                         </p>
                       </div>
 
                       <div className="overflow-x-auto rounded-xl border border-slate-800">
-                        <table className="w-full text-left border-collapse min-w-[900px]">
+                        <table className="w-full text-left border-collapse min-w-[850px]">
                           <thead>
                             <tr className="bg-slate-900/80 border-b border-slate-800 text-slate-400 text-xs font-semibold uppercase tracking-wider">
                               <th className="py-4 px-4">Roommate</th>
@@ -3466,21 +3466,10 @@ export default function Dashboard() {
                               <th className="py-4 px-3 text-right text-indigo-400">
                                 Rent Due
                               </th>
-                              <th className="py-4 px-3 text-right flex items-center justify-end gap-1">
-                                <span>Final Due</span>
-                                <span title="Positive (+) = Refund due to roommate | Negative (-) = Roommate owes household">
-                                  <HelpCircle size={12} className="text-slate-500 hover:text-slate-300 cursor-pointer" />
-                                </span>
-                              </th>
                             </tr>
                           </thead>
                           <tbody className="divide-y divide-slate-800/80">
                             {summaryData.userStandings.map((user) => {
-                              const isOwed = user.finalDue < 0;
-                              const formattedStanding = isOwed
-                                ? `+${currencySymbol}${Math.abs(user.finalDue).toFixed(2)} (Refund)`
-                                : `${currencySymbol}${user.finalDue.toFixed(2)} (Owes)`;
-
                               return (
                                 <tr
                                   key={user.userId}
@@ -3580,15 +3569,6 @@ export default function Dashboard() {
                                       Paid: -{currencySymbol}
                                       {(user.rentPayment || 0).toFixed(0)}
                                     </span>
-                                  </td>
-                                  <td
-                                    className={`py-5 px-3 text-right font-bold transition-colors ${
-                                      isOwed
-                                        ? "text-emerald-400"
-                                        : "text-rose-450"
-                                    }`}
-                                  >
-                                    {formattedStanding}
                                   </td>
                                 </tr>
                               );
