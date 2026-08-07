@@ -206,7 +206,7 @@ export default function QuickActionWidget({
           {actionTab === "bazar" ? (
             <div className="space-y-1.5">
               <label className="text-[10px] font-bold text-[#A69788] uppercase tracking-wider flex items-center gap-1">
-                <User size={12} className="text-[#E38D73]" /> Assigned Cook / Purchaser
+                <User size={12} className="text-[#E38D73]" /> Assigned Purchaser / Duty Member
               </label>
               <select
                 value={assignedUser}
