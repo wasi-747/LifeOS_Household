@@ -28,6 +28,7 @@ import {
   Crown,
   AlertCircle,
   Zap,
+  Calculator,
 } from "lucide-react";
 import { driver } from "driver.js";
 import "driver.js/dist/driver.css";
@@ -39,6 +40,8 @@ import DeviceConsentModal from "./DeviceConsentModal";
 import DeviceTrackingSettings from "./DeviceTrackingSettings";
 import DeviceDownloadHelp from "./DeviceDownloadHelp";
 import HouseChat from "./HouseChat";
+import SmartMathInput from "./SmartMathInput";
+import QuickCalculatorModal from "./QuickCalculatorModal";
 
 
 interface UserStanding {
@@ -228,6 +231,7 @@ export default function Dashboard() {
   const [showTrackingSettings, setShowTrackingSettings] = useState<boolean>(false);
   const [showDownloadHelp, setShowDownloadHelp] = useState<boolean>(false);
   const [showProModal, setShowProModal] = useState<boolean>(false);
+  const [showQuickCalc, setShowQuickCalc] = useState<boolean>(false);
 
   // Daily Tracker Interfaces & States
   interface TrackerUser {
@@ -2048,6 +2052,20 @@ export default function Dashboard() {
                 </button>
 
                 <button
+                  type="button"
+                  onClick={() => setShowQuickCalc(!showQuickCalc)}
+                  className={`flex items-center gap-1.5 border text-xs font-bold px-3 py-1.5 rounded-lg shadow-md transition-all cursor-pointer ${
+                    showQuickCalc
+                      ? "bg-amber-500 text-slate-950 border-amber-400 font-extrabold"
+                      : "bg-slate-800 border-slate-700 text-slate-300 hover:text-white hover:border-amber-500/50"
+                  }`}
+                  title="Open Quick Bazar Calculator"
+                >
+                  <Calculator size={14} className={showQuickCalc ? "text-slate-950" : "text-amber-400"} />
+                  <span>Calculator</span>
+                </button>
+
+                <button
                   onClick={openConfigModal}
                   className="flex items-center gap-1.5 bg-indigo-650 hover:bg-indigo-750 text-xs font-bold text-white px-3 py-1.5 rounded-lg shadow-lg shadow-indigo-500/20 transition-all cursor-pointer"
                 >
@@ -2535,25 +2553,22 @@ export default function Dashboard() {
                                       className="py-2 px-4 text-center relative"
                                     >
                                       <div className="flex items-center justify-center gap-1">
-                                        <div className="flex items-center justify-center">
+                                        <div className="flex items-center justify-center w-24">
                                           <span className="text-slate-500 mr-0.5 text-[10px] font-bold">
                                             ৳
                                           </span>
-                                          <input
+                                          <SmartMathInput
                                             id={`bazar-input-${item.day}-${u._id}`}
-                                            type="number"
-                                            defaultValue={
-                                              costVal === 0 ? "" : costVal
-                                            }
-                                            placeholder="0"
-                                            onBlur={(e) =>
+                                            value={costVal}
+                                            onChange={(val) =>
                                               handleBazarChange(
                                                 item.day,
                                                 u._id,
-                                                e.target.value,
+                                                val,
                                               )
                                             }
-                                            className="bg-slate-800 hover:bg-slate-750 border border-slate-700 rounded px-2 py-1 w-20 text-center focus:outline-none focus:border-amber-500 font-semibold transition-all text-xs text-white"
+                                            placeholder="0"
+                                            className="bg-slate-800 hover:bg-slate-750 border border-slate-700 rounded px-1.5 py-1 w-full text-center focus:outline-none focus:border-amber-500 font-semibold transition-all text-xs text-white"
                                           />
                                         </div>
                                         <button
@@ -2767,25 +2782,22 @@ export default function Dashboard() {
                                       className="py-2 px-4 text-center relative"
                                     >
                                       <div className="flex items-center justify-center gap-1">
-                                        <div className="flex items-center justify-center">
+                                        <div className="flex items-center justify-center w-24">
                                           <span className="text-slate-500 mr-0.5 text-[10px] font-bold">
                                             ৳
                                           </span>
-                                          <input
+                                          <SmartMathInput
                                             id={`deposit-input-${item.day}-${u._id}`}
-                                            type="number"
-                                            defaultValue={
-                                              depVal === 0 ? "" : depVal
-                                            }
-                                            placeholder="0"
-                                            onBlur={(e) =>
+                                            value={depVal}
+                                            onChange={(val) =>
                                               handleDepositChange(
                                                 item.day,
                                                 u._id,
-                                                e.target.value,
+                                                val,
                                               )
                                             }
-                                            className="bg-slate-800 hover:bg-slate-750 border border-slate-700 rounded px-2 py-1 w-20 text-center focus:outline-none focus:border-emerald-500 font-semibold transition-all text-xs text-white"
+                                            placeholder="0"
+                                            className="bg-slate-800 hover:bg-slate-750 border border-slate-700 rounded px-1.5 py-1 w-full text-center focus:outline-none focus:border-emerald-500 font-semibold transition-all text-xs text-white"
                                           />
                                         </div>
                                         <button
@@ -4910,6 +4922,12 @@ export default function Dashboard() {
           </div>
         </div>
       )}
+      {/* Quick Calculator Widget */}
+      <QuickCalculatorModal
+        isOpen={showQuickCalc}
+        onClose={() => setShowQuickCalc(false)}
+        currencySymbol={currencySymbol}
+      />
     </div>
   );
 }
