@@ -1,11 +1,12 @@
 import React, { useState } from "react";
-import { Zap, ShoppingBag, DollarSign, Calendar, Plus, Trash2, Check, Loader2, User } from "lucide-react";
+import { Zap, ShoppingBag, DollarSign, Calendar, Plus, Trash2, Check, Loader2, User, ArrowRightLeft } from "lucide-react";
 import SmartMathInput, { evaluateMathExpression } from "./SmartMathInput";
 import api from "../services/api";
 
 interface QuickActionWidgetProps {
   monthId: string;
   daysInMonth: number;
+  users?: Array<{ _id: string; name: string }>;
   currencySymbol?: string;
   activeUserId: string;
   activeUserName: string;
@@ -22,6 +23,7 @@ interface GroceryItem {
 export default function QuickActionWidget({
   monthId,
   daysInMonth,
+  users = [],
   currencySymbol = "৳",
   activeUserId,
   activeUserName,
@@ -44,6 +46,7 @@ export default function QuickActionWidget({
 
   // Deposit Form State
   const [depositAmount, setDepositAmount] = useState<string>("");
+  const [givenTo, setGivenTo] = useState<string>("");
   const [depositNote, setDepositNote] = useState<string>("");
 
   const addGroceryItem = () => {
@@ -80,10 +83,10 @@ export default function QuickActionWidget({
 
     setSubmitting(true);
     try {
-      // Build item details note string (e.g., "Alu (Potato) 60, Piaz (Onion) 120")
+      // Build item details note string (e.g., "Alu (Potato) ৳60, Piaz (Onion) ৳120")
       const itemDetails = groceryItems
         .filter((i) => (parseFloat(i.price) || 0) > 0 || i.name.trim())
-        .map((i) => `${i.name.trim() || "Item"} ${i.price}`)
+        .map((i) => `${i.name.trim() || "Item"} ${currencySymbol}${i.price}`)
         .join(", ");
 
       await api.post("/tracker/bazar/update", {
@@ -123,6 +126,7 @@ export default function QuickActionWidget({
 
     setSubmitting(true);
     try {
+      // 1. Log Meal Deposit
       await api.post("/tracker/deposits/update", {
         monthId,
         day: selectedDay,
@@ -133,12 +137,41 @@ export default function QuickActionWidget({
         activeUserName,
       });
 
+      let extraMsg = "";
+
+      // 2. If money was given to another roommate, log a Grocery Wallet Transfer!
+      if (givenTo) {
+        const parts = monthId.split("-");
+        const monthName = parts[0];
+        const yearStr = parts[1];
+        const monthsMap: Record<string, number> = {
+          January: 0, February: 1, March: 2, April: 3, May: 4, June: 5,
+          July: 6, August: 7, September: 8, October: 9, November: 10, December: 11,
+        };
+        const mIdx = monthsMap[monthName] !== undefined ? monthsMap[monthName] : new Date().getMonth();
+        const yr = parseInt(yearStr, 10) || new Date().getFullYear();
+        const transferDate = new Date(Date.UTC(yr, mIdx, selectedDay, 12, 0, 0)).toISOString();
+
+        await api.post("/bazar-wallet/transfer", {
+          monthId,
+          from: activeUserId,
+          to: givenTo,
+          amount: numericAmount,
+          date: transferDate,
+          note: depositNote.trim() ? `Meal Deposit — ${depositNote.trim()}` : "Meal deposit transfer",
+        });
+
+        const targetUser = users.find((u) => u._id === givenTo);
+        extraMsg = ` & transferred to Grocery Wallet for ${targetUser ? targetUser.name : "roommate"}`;
+      }
+
       triggerSuccessNotice(
-        `Logged ${currencySymbol}${numericAmount.toFixed(2)} meal deposit for Day ${selectedDay}!`
+        `Logged ${currencySymbol}${numericAmount.toFixed(2)} meal deposit for Day ${selectedDay}${extraMsg}!`
       );
 
       setDepositAmount("");
       setDepositNote("");
+      setGivenTo("");
       onRefresh();
     } catch (err: any) {
       console.error("Quick Action Error:", err);
@@ -318,7 +351,7 @@ export default function QuickActionWidget({
       {/* Tab 2: Meal Deposit Log */}
       {actionTab === "deposit" && (
         <form onSubmit={handleDepositSubmit} className="space-y-4">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             {/* Day / Date Selector */}
             <div className="space-y-1.5">
               <label className="text-[10px] font-bold text-[#A69788] uppercase tracking-wider flex items-center gap-1">
@@ -348,6 +381,27 @@ export default function QuickActionWidget({
                 placeholder="0 or 500+200"
                 className="w-full bg-[#1C1512] border border-[#382923] focus:border-[#A0B095] rounded-2xl px-3 py-2.5 text-xs text-[#FAF6F0] font-bold focus:outline-none"
               />
+            </div>
+
+            {/* Given To (Handed Over / Transferred to Roommate) */}
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-bold text-[#A69788] uppercase tracking-wider flex items-center gap-1">
+                <ArrowRightLeft size={12} className="text-[#E38D73]" /> Given To (Physical Cash)
+              </label>
+              <select
+                value={givenTo}
+                onChange={(e) => setGivenTo(e.target.value)}
+                className="w-full bg-[#1C1512] border border-[#382923] focus:border-[#A0B095] rounded-2xl px-3 py-2.5 text-xs text-[#FAF6F0] font-semibold focus:outline-none cursor-pointer"
+              >
+                <option value="">-- None (Self-Held Cash) --</option>
+                {users
+                  .filter((u) => u._id !== activeUserId)
+                  .map((u) => (
+                    <option key={u._id} value={u._id}>
+                      Handed to {u.name}
+                    </option>
+                  ))}
+              </select>
             </div>
           </div>
 
