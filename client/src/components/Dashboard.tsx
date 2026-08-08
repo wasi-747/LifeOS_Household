@@ -1456,6 +1456,7 @@ export default function Dashboard() {
         day,
         userId,
         amount: numericVal,
+        isOverwrite: true,
         activeUserId,
         activeUserName,
       });
@@ -1540,6 +1541,7 @@ export default function Dashboard() {
         day,
         userId,
         count: newCount,
+        isOverwrite: true,
         activeUserId,
         activeUserName,
       });
@@ -1582,6 +1584,7 @@ export default function Dashboard() {
         day,
         userId,
         amount: numericVal,
+        isOverwrite: true,
         activeUserId,
         activeUserName,
       });

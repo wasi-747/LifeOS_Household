@@ -161,7 +161,7 @@ exports.getTrackerData = async (req, res) => {
 
 exports.updateMeals = async (req, res) => {
   try {
-    const { monthId, day, userId, count, isAppend, mode } = req.body;
+    const { monthId, day, userId, count, isOverwrite } = req.body;
     const homeId = req.user.homeId;
 
     if (!monthId || day === undefined || !userId || count === undefined) {
@@ -206,9 +206,9 @@ exports.updateMeals = async (req, res) => {
     const userIndex = dmRecord.meals.findIndex(m => m.user && m.user.toString() === userId);
     const oldCount = userIndex > -1 ? (parseFloat(dmRecord.meals[userIndex].count) || 0) : 0;
 
-    const shouldAppend = isAppend === true || String(isAppend) === 'true' || mode === 'add';
+    const shouldOverwrite = isOverwrite === true || String(isOverwrite) === 'true';
     const numCount = parseFloat(count) || 0;
-    const newCount = shouldAppend ? (oldCount + numCount) : numCount;
+    const newCount = shouldOverwrite ? numCount : (oldCount + numCount);
 
     if (userIndex > -1) {
       dmRecord.meals[userIndex].count = newCount;
@@ -248,7 +248,7 @@ exports.updateMeals = async (req, res) => {
 
 exports.updateBazar = async (req, res) => {
   try {
-    const { monthId, day, userId, amount, note, isAppend, mode } = req.body;
+    const { monthId, day, userId, amount, note, isOverwrite } = req.body;
     const homeId = req.user.homeId;
 
     if (!monthId || day === undefined || !userId || amount === undefined) {
@@ -286,11 +286,12 @@ exports.updateBazar = async (req, res) => {
     });
 
     if (transaction) {
-      const oldAmount = transaction.amount;
+      const oldAmount = parseFloat(transaction.amount) || 0;
       const oldNote = transaction.note || '';
-      const shouldAppend = isAppend === true || mode === 'add';
+      const shouldOverwrite = isOverwrite === true || String(isOverwrite) === 'true';
+      const numAmount = parseFloat(amount) || 0;
 
-      if (amount <= 0 && !shouldAppend) {
+      if (numAmount <= 0 && shouldOverwrite) {
         await Transaction.deleteOne({ _id: transaction._id });
         await logChange({
           monthId,
@@ -309,10 +310,10 @@ exports.updateBazar = async (req, res) => {
         });
         return res.status(200).json({ message: 'Bazar transaction removed (amount is 0)' });
       } else {
-        const newAmount = shouldAppend ? oldAmount + amount : amount;
-        const newNote = shouldAppend
-          ? (note ? (oldNote ? `${oldNote}, ${note}` : note) : oldNote)
-          : (note !== undefined ? note : oldNote);
+        const newAmount = shouldOverwrite ? numAmount : (oldAmount + numAmount);
+        const newNote = shouldOverwrite
+          ? (note !== undefined ? note : oldNote)
+          : (note ? (oldNote ? `${oldNote}, ${note}` : note) : oldNote);
 
         transaction.amount = newAmount;
         transaction.note = newNote;
@@ -407,7 +408,7 @@ exports.updateConfig = async (req, res) => {
 
 exports.updateDeposit = async (req, res) => {
   try {
-    const { monthId, day, userId, amount, note, isAppend, mode } = req.body;
+    const { monthId, day, userId, amount, note, isOverwrite } = req.body;
     const homeId = req.user.homeId;
 
     if (!monthId || day === undefined || !userId || amount === undefined) {
@@ -446,11 +447,12 @@ exports.updateDeposit = async (req, res) => {
     });
 
     if (transaction) {
-      const oldAmount = transaction.amount;
+      const oldAmount = parseFloat(transaction.amount) || 0;
       const oldNote = transaction.note || '';
-      const shouldAppend = isAppend === true || mode === 'add';
+      const shouldOverwrite = isOverwrite === true || String(isOverwrite) === 'true';
+      const numAmount = parseFloat(amount) || 0;
 
-      if (amount <= 0 && !shouldAppend) {
+      if (numAmount <= 0 && shouldOverwrite) {
         await Transaction.deleteOne({ _id: transaction._id });
         await logChange({
           monthId,
@@ -469,10 +471,10 @@ exports.updateDeposit = async (req, res) => {
         });
         return res.status(200).json({ message: 'Deposit transaction removed (amount is 0)' });
       } else {
-        const newAmount = shouldAppend ? oldAmount + amount : amount;
-        const newNote = shouldAppend
-          ? (note ? (oldNote ? `${oldNote}, ${note}` : note) : oldNote)
-          : (note !== undefined ? note : oldNote);
+        const newAmount = shouldOverwrite ? numAmount : (oldAmount + numAmount);
+        const newNote = shouldOverwrite
+          ? (note !== undefined ? note : oldNote)
+          : (note ? (oldNote ? `${oldNote}, ${note}` : note) : oldNote);
 
         transaction.amount = newAmount;
         transaction.note = newNote;
