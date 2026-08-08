@@ -98,15 +98,17 @@ exports.getTrackerData = async (req, res) => {
       const dailyBazarCosts = {};
       const dailyBazarNotes = {};
       users.forEach(u => {
-        const matchingTx = bazarTransactions.find(tx => {
+        const matchingTxs = bazarTransactions.filter(tx => {
           const txDate = new Date(tx.date);
           return txDate.getUTCDate() === d && 
                  txDate.getUTCMonth() === monthIndex && 
                  txDate.getUTCFullYear() === year &&
                  tx.paidBy && tx.paidBy.toString() === u._id.toString();
         });
-        dailyBazarCosts[u._id] = matchingTx ? matchingTx.amount : 0;
-        dailyBazarNotes[u._id] = matchingTx ? (matchingTx.note || '') : '';
+        const totalBazar = matchingTxs.reduce((sum, tx) => sum + (parseFloat(tx.amount) || 0), 0);
+        const combinedNotes = matchingTxs.map(tx => tx.note).filter(Boolean).join(", ");
+        dailyBazarCosts[u._id] = totalBazar;
+        dailyBazarNotes[u._id] = combinedNotes;
       });
 
       bazar.push({
@@ -121,15 +123,17 @@ exports.getTrackerData = async (req, res) => {
       const dailyDeposits = {};
       const dailyDepositNotes = {};
       users.forEach(u => {
-        const matchingTx = depositTransactions.find(tx => {
+        const matchingTxs = depositTransactions.filter(tx => {
           const txDate = new Date(tx.date);
           return txDate.getUTCDate() === d && 
                  txDate.getUTCMonth() === monthIndex && 
                  txDate.getUTCFullYear() === year &&
                  tx.paidBy && tx.paidBy.toString() === u._id.toString();
         });
-        dailyDeposits[u._id] = matchingTx ? matchingTx.amount : 0;
-        dailyDepositNotes[u._id] = matchingTx ? (matchingTx.note || '') : '';
+        const totalDeposit = matchingTxs.reduce((sum, tx) => sum + (parseFloat(tx.amount) || 0), 0);
+        const combinedNotes = matchingTxs.map(tx => tx.note).filter(Boolean).join(", ");
+        dailyDeposits[u._id] = totalDeposit;
+        dailyDepositNotes[u._id] = combinedNotes;
       });
 
       deposits.push({
