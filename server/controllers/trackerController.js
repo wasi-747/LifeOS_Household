@@ -240,7 +240,7 @@ exports.updateMeals = async (req, res) => {
 
 exports.updateBazar = async (req, res) => {
   try {
-    const { monthId, day, userId, amount, note } = req.body;
+    const { monthId, day, userId, amount, note, isAppend, mode } = req.body;
     const homeId = req.user.homeId;
 
     if (!monthId || day === undefined || !userId || amount === undefined) {
@@ -280,7 +280,9 @@ exports.updateBazar = async (req, res) => {
     if (transaction) {
       const oldAmount = transaction.amount;
       const oldNote = transaction.note || '';
-      if (amount <= 0) {
+      const shouldAppend = isAppend === true || mode === 'add';
+
+      if (amount <= 0 && !shouldAppend) {
         await Transaction.deleteOne({ _id: transaction._id });
         await logChange({
           monthId,
@@ -299,12 +301,18 @@ exports.updateBazar = async (req, res) => {
         });
         return res.status(200).json({ message: 'Bazar transaction removed (amount is 0)' });
       } else {
-        transaction.amount = amount;
-        if (note !== undefined) transaction.note = note;
+        const newAmount = shouldAppend ? oldAmount + amount : amount;
+        const newNote = shouldAppend
+          ? (note ? (oldNote ? `${oldNote}, ${note}` : note) : oldNote)
+          : (note !== undefined ? note : oldNote);
+
+        transaction.amount = newAmount;
+        transaction.note = newNote;
         await transaction.save();
+
         const changes = [];
-        if (oldAmount !== amount) changes.push({ field: 'amount', oldValue: oldAmount, newValue: amount, detail: `Changed ${targetName}'s bazar from ৳${oldAmount} to ৳${amount} on Day ${day}` });
-        if (note !== undefined && oldNote !== note) changes.push({ field: 'note', oldValue: oldNote, newValue: note, detail: `Updated bazar note for ${targetName} on Day ${day}` });
+        if (oldAmount !== newAmount) changes.push({ field: 'amount', oldValue: oldAmount, newValue: newAmount, detail: `Changed ${targetName}'s bazar from ৳${oldAmount} to ৳${newAmount} on Day ${day}` });
+        if (oldNote !== newNote) changes.push({ field: 'note', oldValue: oldNote, newValue: newNote, detail: `Updated bazar note for ${targetName} on Day ${day}` });
         if (changes.length > 0) {
           await logChange({
             monthId,
@@ -391,7 +399,7 @@ exports.updateConfig = async (req, res) => {
 
 exports.updateDeposit = async (req, res) => {
   try {
-    const { monthId, day, userId, amount, note } = req.body;
+    const { monthId, day, userId, amount, note, isAppend, mode } = req.body;
     const homeId = req.user.homeId;
 
     if (!monthId || day === undefined || !userId || amount === undefined) {
@@ -432,7 +440,9 @@ exports.updateDeposit = async (req, res) => {
     if (transaction) {
       const oldAmount = transaction.amount;
       const oldNote = transaction.note || '';
-      if (amount <= 0) {
+      const shouldAppend = isAppend === true || mode === 'add';
+
+      if (amount <= 0 && !shouldAppend) {
         await Transaction.deleteOne({ _id: transaction._id });
         await logChange({
           monthId,
@@ -451,12 +461,18 @@ exports.updateDeposit = async (req, res) => {
         });
         return res.status(200).json({ message: 'Deposit transaction removed (amount is 0)' });
       } else {
-        transaction.amount = amount;
-        if (note !== undefined) transaction.note = note;
+        const newAmount = shouldAppend ? oldAmount + amount : amount;
+        const newNote = shouldAppend
+          ? (note ? (oldNote ? `${oldNote}, ${note}` : note) : oldNote)
+          : (note !== undefined ? note : oldNote);
+
+        transaction.amount = newAmount;
+        transaction.note = newNote;
         await transaction.save();
+
         const changes = [];
-        if (oldAmount !== amount) changes.push({ field: 'amount', oldValue: oldAmount, newValue: amount, detail: `Changed ${targetName}'s deposit from ৳${oldAmount} to ৳${amount} on Day ${day}` });
-        if (note !== undefined && oldNote !== note) changes.push({ field: 'note', oldValue: oldNote, newValue: note, detail: `Updated deposit note for ${targetName} on Day ${day}` });
+        if (oldAmount !== newAmount) changes.push({ field: 'amount', oldValue: oldAmount, newValue: newAmount, detail: `Changed ${targetName}'s deposit from ৳${oldAmount} to ৳${newAmount} on Day ${day}` });
+        if (oldNote !== newNote) changes.push({ field: 'note', oldValue: oldNote, newValue: newNote, detail: `Updated deposit note for ${targetName} on Day ${day}` });
         if (changes.length > 0) {
           await logChange({
             monthId,

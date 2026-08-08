@@ -95,6 +95,7 @@ export default function QuickActionWidget({
         userId: activeUserId,
         amount: groceryTotal,
         note: itemDetails || null,
+        isAppend: true,
         activeUserId,
         activeUserName,
       });
@@ -133,6 +134,7 @@ export default function QuickActionWidget({
         userId: activeUserId,
         amount: numericAmount,
         note: depositNote.trim() || null,
+        isAppend: true,
         activeUserId,
         activeUserName,
       });
