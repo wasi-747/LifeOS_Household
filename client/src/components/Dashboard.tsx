@@ -2049,7 +2049,7 @@ export default function Dashboard() {
                   title="Create a new month with carried forward dues"
                 >
                   <Plus size={14} />
-                  <span>+ New Month</span>
+                  <span>New Month</span>
                 </button>
 
                 <button
