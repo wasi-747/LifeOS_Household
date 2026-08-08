@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Zap, ShoppingBag, DollarSign, Calendar, Plus, Trash2, Check, Loader2, User, ArrowRightLeft } from "lucide-react";
+import { Zap, ShoppingBag, DollarSign, Calendar, Plus, Trash2, Check, Loader2, User, ArrowRightLeft, Utensils } from "lucide-react";
 import SmartMathInput, { evaluateMathExpression } from "./SmartMathInput";
 import api from "../services/api";
 
@@ -30,7 +30,7 @@ export default function QuickActionWidget({
   onRefresh,
   showAlert,
 }: QuickActionWidgetProps) {
-  const [actionTab, setActionTab] = useState<"bazar" | "deposit">("bazar");
+  const [actionTab, setActionTab] = useState<"bazar" | "deposit" | "meals">("bazar");
   const [submitting, setSubmitting] = useState<boolean>(false);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
 
@@ -48,6 +48,9 @@ export default function QuickActionWidget({
   const [depositAmount, setDepositAmount] = useState<string>("");
   const [givenTo, setGivenTo] = useState<string>("");
   const [depositNote, setDepositNote] = useState<string>("");
+
+  // Meals Form State
+  const [mealCount, setMealCount] = useState<string>("2");
 
   const addGroceryItem = () => {
     setGroceryItems((prev) => [
@@ -186,6 +189,37 @@ export default function QuickActionWidget({
     }
   };
 
+  const handleMealsSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const countVal = parseFloat(mealCount) || 0;
+    if (submitting) return;
+
+    setSubmitting(true);
+    try {
+      await api.post("/tracker/meals/update", {
+        monthId,
+        day: selectedDay,
+        userId: activeUserId,
+        count: countVal,
+        activeUserId,
+        activeUserName,
+      });
+
+      triggerSuccessNotice(
+        `Recorded ${countVal.toFixed(1)} meals for Day ${selectedDay}!`
+      );
+      onRefresh();
+    } catch (err: any) {
+      console.error("Quick Action Error:", err);
+      showAlert(
+        "Action Failed",
+        err.response?.data?.error || "Failed to record meals."
+      );
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   return (
     <div
       id="quick-action-widget"
@@ -217,13 +251,13 @@ export default function QuickActionWidget({
         </div>
 
         {/* Action Type Toggle Buttons */}
-        <div className="flex gap-1.5 bg-[#1C1512] p-1.5 border border-[#382923] rounded-2xl shrink-0">
+        <div className="flex gap-1 bg-[#1C1512] p-1.5 border border-[#382923] rounded-2xl shrink-0 overflow-x-auto">
           <button
             type="button"
             onClick={() => setActionTab("bazar")}
-            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer border-0 flex items-center gap-1.5 ${
+            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer border-0 flex items-center gap-1.5 whitespace-nowrap ${
               actionTab === "bazar"
-                ? "bg-[#E38D73] text-[#1C1512] shadow-md"
+                ? "bg-[#E38D73] text-[#1C1512] shadow-md font-black"
                 : "text-[#A69788] hover:text-[#FAF6F0] bg-transparent"
             }`}
           >
@@ -234,14 +268,27 @@ export default function QuickActionWidget({
           <button
             type="button"
             onClick={() => setActionTab("deposit")}
-            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer border-0 flex items-center gap-1.5 ${
+            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer border-0 flex items-center gap-1.5 whitespace-nowrap ${
               actionTab === "deposit"
-                ? "bg-[#A0B095] text-[#1C1512] shadow-md"
+                ? "bg-[#A0B095] text-[#1C1512] shadow-md font-black"
                 : "text-[#A69788] hover:text-[#FAF6F0] bg-transparent"
             }`}
           >
             <DollarSign size={14} />
             <span>Meal Deposit</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setActionTab("meals")}
+            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer border-0 flex items-center gap-1.5 whitespace-nowrap ${
+              actionTab === "meals"
+                ? "bg-[#E38D73] text-[#1C1512] shadow-md font-black"
+                : "text-[#A69788] hover:text-[#FAF6F0] bg-transparent"
+            }`}
+          >
+            <Utensils size={14} />
+            <span>Daily Meals</span>
           </button>
         </div>
       </div>
@@ -428,6 +475,84 @@ export default function QuickActionWidget({
                 <>
                   <Zap size={15} />
                   <span>Log Meal Deposit for Day {selectedDay}</span>
+                </>
+              )}
+            </button>
+          </div>
+        </form>
+      )}
+
+      {/* Tab 3: Daily Meals Log */}
+      {actionTab === "meals" && (
+        <form onSubmit={handleMealsSubmit} className="space-y-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {/* Day / Date Selector */}
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-bold text-[#A69788] uppercase tracking-wider flex items-center gap-1">
+                <Calendar size={12} className="text-[#E38D73]" /> Date (Day of Month)
+              </label>
+              <select
+                value={selectedDay}
+                onChange={(e) => setSelectedDay(parseInt(e.target.value) || 1)}
+                className="w-full bg-[#1C1512] border border-[#382923] focus:border-[#E38D73] rounded-2xl px-3 py-2.5 text-xs text-[#FAF6F0] font-bold focus:outline-none cursor-pointer"
+              >
+                {Array.from({ length: daysInMonth || 30 }, (_, i) => i + 1).map((d) => (
+                  <option key={d} value={d}>
+                    Day {d} {d === todayDay ? "(Today)" : ""}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Meal Count Input & Quick Buttons */}
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-bold text-[#A69788] uppercase tracking-wider flex items-center gap-1">
+                <Utensils size={12} className="text-[#E38D73]" /> Number of Meals Eaten
+              </label>
+              <div className="flex items-center gap-2">
+                <input
+                  type="number"
+                  step="0.5"
+                  min="0"
+                  max="10"
+                  value={mealCount}
+                  onChange={(e) => setMealCount(e.target.value)}
+                  className="w-24 bg-[#1C1512] border border-[#382923] focus:border-[#E38D73] rounded-2xl px-3 py-2.5 text-xs text-[#FAF6F0] font-bold text-center focus:outline-none"
+                />
+                {/* Quick Chips */}
+                <div className="flex gap-1 overflow-x-auto">
+                  {["0", "1", "1.5", "2", "2.5", "3"].map((mVal) => (
+                    <button
+                      key={mVal}
+                      type="button"
+                      onClick={() => setMealCount(mVal)}
+                      className={`px-2.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer border border-[#382923] ${
+                        mealCount === mVal
+                          ? "bg-[#E38D73] text-[#1C1512] font-black"
+                          : "bg-[#1C1512] text-[#A69788] hover:text-[#FAF6F0]"
+                      }`}
+                    >
+                      {mVal}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Submit Button */}
+          <div className="flex justify-end pt-1">
+            <button
+              type="submit"
+              disabled={submitting}
+              className="bg-[#E38D73] hover:bg-[#F2A38A] disabled:opacity-40 text-[#1C1512] font-black text-xs px-6 py-2.5 rounded-2xl transition-all shadow-xl cursor-pointer flex items-center justify-center gap-2 border-0"
+            >
+              {submitting ? (
+                <Loader2 size={16} className="animate-spin text-[#1C1512]" />
+              ) : (
+                <>
+                  <Zap size={15} />
+                  <span>Log {parseFloat(mealCount) || 0} Meals for Day {selectedDay}</span>
                 </>
               )}
             </button>
