@@ -40,8 +40,7 @@ export default function QuickActionWidget({
 
   // Grocery Items List State
   const [groceryItems, setGroceryItems] = useState<GroceryItem[]>([
-    { id: "1", name: "Alu (Potato)", price: "60" },
-    { id: "2", name: "Piaz (Onion)", price: "120" },
+    { id: "1", name: "", price: "" },
   ]);
 
   // Deposit Form State
@@ -338,19 +337,19 @@ export default function QuickActionWidget({
               <div key={item.id} className="flex items-center gap-2">
                 <input
                   type="text"
-                  placeholder="Item Name (e.g. Alu, Piaz, Mach)"
+                  placeholder="e.g. Alu (Potato), Mach, Dim..."
                   value={item.name}
                   onChange={(e) => updateGroceryItem(item.id, "name", e.target.value)}
-                  className="flex-1 bg-[#1C1512] border border-[#382923] focus:border-[#E38D73] rounded-2xl px-3 py-2 text-xs text-[#FAF6F0] focus:outline-none placeholder-[#78695C] font-medium"
+                  className="flex-1 bg-[#1C1512] border border-[#382923] focus:border-[#E38D73] rounded-2xl px-3 py-2 text-xs text-[#FAF6F0] focus:outline-none placeholder-[#78695C]/60 font-medium"
                 />
                 <div className="flex items-center w-36 bg-[#1C1512] border border-[#382923] focus-within:border-[#E38D73] rounded-2xl px-3 py-2">
                   <span className="text-[10px] text-[#A69788] mr-1">{currencySymbol}</span>
                   <input
                     type="text"
-                    placeholder="Price (60 or 50+10)"
+                    placeholder="60 or 50+10"
                     value={item.price}
                     onChange={(e) => updateGroceryItem(item.id, "price", e.target.value)}
-                    className="w-full bg-transparent border-none text-xs text-[#FAF6F0] text-right focus:outline-none font-bold"
+                    className="w-full bg-transparent border-none text-xs text-[#FAF6F0] text-right focus:outline-none placeholder-[#78695C]/60 font-bold"
                   />
                 </div>
                 {groceryItems.length > 1 && (
