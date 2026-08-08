@@ -13,21 +13,33 @@ interface SmartMathInputProps {
 export const evaluateMathExpression = (expr: string | number): number | null => {
   if (typeof expr === "number") return expr;
   if (!expr || typeof expr !== "string") return null;
-  const clean = expr.replace(/=/g, "").trim();
+  let clean = expr.replace(/=/g, "").trim();
   if (!clean) return null;
   
   if (/^-?\d+(\.\d+)?$/.test(clean)) {
     return parseFloat(clean);
   }
-  
-  if (!/^[0-9+\-*/.()\s%]+$/.test(clean)) {
+
+  // Sanitize and replace math functions & constants
+  let sanitized = clean
+    .replace(/π|pi/gi, "Math.PI")
+    .replace(/\be\b/gi, "Math.E")
+    .replace(/sqrt\(/gi, "Math.sqrt(")
+    .replace(/sin\(/gi, "Math.sin(")
+    .replace(/cos\(/gi, "Math.cos(")
+    .replace(/tan\(/gi, "Math.tan(")
+    .replace(/log\(/gi, "Math.log10(")
+    .replace(/ln\(/gi, "Math.log(")
+    .replace(/\^/g, "**");
+
+  if (!/^[0-9+\-*/.()\s%MathPIEsqrtsincostanlog10\*\*]+$/.test(sanitized)) {
     return null;
   }
   
   try {
-    const result = new Function(`"use strict"; return (${clean})`)();
+    const result = new Function(`"use strict"; return (${sanitized})`)();
     if (typeof result === "number" && !isNaN(result) && isFinite(result)) {
-      return Math.round(result * 100) / 100;
+      return Math.round(result * 10000) / 10000;
     }
   } catch (e) {
     return null;

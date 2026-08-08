@@ -4938,7 +4938,6 @@ export default function Dashboard() {
       <QuickCalculatorModal
         isOpen={showQuickCalc}
         onClose={() => setShowQuickCalc(false)}
-        currencySymbol={currencySymbol}
       />
     </div>
   );
