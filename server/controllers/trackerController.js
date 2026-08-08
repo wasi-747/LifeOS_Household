@@ -161,7 +161,7 @@ exports.getTrackerData = async (req, res) => {
 
 exports.updateMeals = async (req, res) => {
   try {
-    const { monthId, day, userId, count } = req.body;
+    const { monthId, day, userId, count, isAppend, mode } = req.body;
     const homeId = req.user.homeId;
 
     if (!monthId || day === undefined || !userId || count === undefined) {
@@ -202,14 +202,18 @@ exports.updateMeals = async (req, res) => {
       });
     }
 
-    // Capture old value for audit
+    // Capture old value for audit & computation
     const userIndex = dmRecord.meals.findIndex(m => m.user && m.user.toString() === userId);
-    const oldCount = userIndex > -1 ? dmRecord.meals[userIndex].count : 0;
+    const oldCount = userIndex > -1 ? (parseFloat(dmRecord.meals[userIndex].count) || 0) : 0;
+
+    const shouldAppend = isAppend === true || String(isAppend) === 'true' || mode === 'add';
+    const numCount = parseFloat(count) || 0;
+    const newCount = shouldAppend ? (oldCount + numCount) : numCount;
 
     if (userIndex > -1) {
-      dmRecord.meals[userIndex].count = count;
+      dmRecord.meals[userIndex].count = newCount;
     } else {
-      dmRecord.meals.push({ user: userId, count });
+      dmRecord.meals.push({ user: userId, count: newCount });
     }
 
     await dmRecord.save();

@@ -201,6 +201,7 @@ export default function QuickActionWidget({
         day: selectedDay,
         userId: activeUserId,
         count: countVal,
+        isAppend: true,
         activeUserId,
         activeUserName,
       });
