@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Calculator, X, Copy, Check, Binary, Sparkles } from "lucide-react";
+import { Calculator, X, Copy, Check } from "lucide-react";
 import { evaluateMathExpression } from "./SmartMathInput";
 
 interface QuickCalculatorModalProps {
@@ -11,7 +11,6 @@ export default function QuickCalculatorModal({
   isOpen,
   onClose,
 }: QuickCalculatorModalProps) {
-  const [calcMode, setCalcMode] = useState<"classic" | "scientific">("classic");
   const [copied, setCopied] = useState<boolean>(false);
   const [calcDisplay, setCalcDisplay] = useState<string>("");
 
@@ -41,7 +40,7 @@ export default function QuickCalculatorModal({
 
   return (
     <div className="fixed bottom-6 right-6 z-50 animate-fade-in">
-      <div className="bg-[#251B17] border border-[#382923] rounded-3xl w-80 md:w-96 shadow-2xl overflow-hidden space-y-3 relative text-[#FAF6F0]">
+      <div className="bg-[#251B17] border border-[#382923] rounded-3xl w-80 md:w-88 shadow-2xl overflow-hidden space-y-3 relative text-[#FAF6F0]">
         {/* Header */}
         <div className="p-4 bg-[#1C1512] border-b border-[#382923] flex items-center justify-between">
           <div className="flex items-center gap-2">
@@ -53,7 +52,7 @@ export default function QuickCalculatorModal({
                 Quick Calculator
               </h3>
               <p className="text-[10px] text-[#A69788]">
-                Classic & Scientific Calculator
+                Fast Household Math & Calculations
               </p>
             </div>
           </div>
@@ -62,32 +61,6 @@ export default function QuickCalculatorModal({
             className="p-1 rounded-lg text-[#A69788] hover:text-[#FAF6F0] hover:bg-[#382923] transition-all bg-transparent border-0 cursor-pointer text-xs"
           >
             <X size={16} />
-          </button>
-        </div>
-
-        {/* Mode Selector (Classic vs Scientific) */}
-        <div className="px-4 flex gap-2">
-          <button
-            onClick={() => setCalcMode("classic")}
-            className={`flex-1 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer border-0 flex items-center justify-center gap-1.5 ${
-              calcMode === "classic"
-                ? "bg-[#E38D73] text-[#1C1512] shadow-md font-black"
-                : "bg-[#1C1512] text-[#A69788] hover:text-[#FAF6F0]"
-            }`}
-          >
-            <Binary size={13} />
-            <span>Classic</span>
-          </button>
-          <button
-            onClick={() => setCalcMode("scientific")}
-            className={`flex-1 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer border-0 flex items-center justify-center gap-1.5 ${
-              calcMode === "scientific"
-                ? "bg-[#E38D73] text-[#1C1512] shadow-md font-black"
-                : "bg-[#1C1512] text-[#A69788] hover:text-[#FAF6F0]"
-            }`}
-          >
-            <Sparkles size={13} />
-            <span>Scientific</span>
           </button>
         </div>
 
@@ -120,75 +93,30 @@ export default function QuickCalculatorModal({
           </button>
         </div>
 
-        {/* Mode 1: Classic Calculator Keypad */}
-        {calcMode === "classic" && (
-          <div className="p-4 space-y-3">
-            <div className="grid grid-cols-4 gap-1.5">
-              {["C", "(", ")", "/", "7", "8", "9", "*", "4", "5", "6", "-", "1", "2", "3", "+", "0", ".", "⌫", "="].map(
-                (btn) => (
-                  <button
-                    key={btn}
-                    onClick={() => handleButtonClick(btn)}
-                    className={`py-3 rounded-xl font-bold text-sm transition-all cursor-pointer border-0 ${
-                      btn === "="
-                        ? "bg-[#E38D73] text-[#1C1512] font-black shadow-lg"
-                        : btn === "C" || btn === "⌫"
-                        ? "bg-rose-950/40 text-rose-300 border border-rose-900/40 hover:bg-rose-900/60"
-                        : ["+", "-", "*", "/", "(", ")"].includes(btn)
-                        ? "bg-[#382923] text-[#E38D73] hover:bg-[#4A3728] font-bold"
-                        : "bg-[#1C1512] text-[#FAF6F0] hover:bg-[#382923]"
-                    }`}
-                  >
-                    {btn}
-                  </button>
-                )
-              )}
-            </div>
+        {/* Classic Keypad */}
+        <div className="p-4 pt-1 space-y-3">
+          <div className="grid grid-cols-4 gap-1.5">
+            {["C", "(", ")", "/", "7", "8", "9", "*", "4", "5", "6", "-", "1", "2", "3", "+", "0", ".", "⌫", "="].map(
+              (btn) => (
+                <button
+                  key={btn}
+                  onClick={() => handleButtonClick(btn)}
+                  className={`py-3.5 rounded-2xl font-bold text-sm transition-all cursor-pointer border-0 ${
+                    btn === "="
+                      ? "bg-[#E38D73] text-[#1C1512] font-black shadow-lg"
+                      : btn === "C" || btn === "⌫"
+                      ? "bg-rose-950/40 text-rose-300 border border-rose-900/40 hover:bg-rose-900/60"
+                      : ["+", "-", "*", "/", "(", ")"].includes(btn)
+                      ? "bg-[#382923] text-[#E38D73] hover:bg-[#4A3728] font-bold"
+                      : "bg-[#1C1512] text-[#FAF6F0] hover:bg-[#382923]"
+                  }`}
+                >
+                  {btn}
+                </button>
+              )
+            )}
           </div>
-        )}
-
-        {/* Mode 2: Scientific Calculator Keypad */}
-        {calcMode === "scientific" && (
-          <div className="p-4 space-y-2">
-            {/* Scientific Math Functions Grid */}
-            <div className="grid grid-cols-5 gap-1 bg-[#1C1512] p-2 border border-[#382923] rounded-2xl">
-              {["sin(", "cos(", "tan(", "sqrt(", "^", "log(", "ln(", "π", "e", "%"].map(
-                (fn) => (
-                  <button
-                    key={fn}
-                    onClick={() => handleButtonClick(fn)}
-                    className="py-1.5 rounded-lg font-mono text-[11px] font-bold bg-[#382923]/60 hover:bg-[#382923] text-[#E38D73] transition-all cursor-pointer border border-[#382923]"
-                  >
-                    {fn}
-                  </button>
-                )
-              )}
-            </div>
-
-            {/* Standard Keypad */}
-            <div className="grid grid-cols-4 gap-1.5">
-              {["C", "(", ")", "/", "7", "8", "9", "*", "4", "5", "6", "-", "1", "2", "3", "+", "0", ".", "⌫", "="].map(
-                (btn) => (
-                  <button
-                    key={btn}
-                    onClick={() => handleButtonClick(btn)}
-                    className={`py-2.5 rounded-xl font-bold text-xs transition-all cursor-pointer border-0 ${
-                      btn === "="
-                        ? "bg-[#E38D73] text-[#1C1512] font-black shadow-lg"
-                        : btn === "C" || btn === "⌫"
-                        ? "bg-rose-950/40 text-rose-300 border border-rose-900/40 hover:bg-rose-900/60"
-                        : ["+", "-", "*", "/", "(", ")"].includes(btn)
-                        ? "bg-[#382923] text-[#E38D73] hover:bg-[#4A3728]"
-                        : "bg-[#1C1512] text-[#FAF6F0] hover:bg-[#382923]"
-                    }`}
-                  >
-                    {btn}
-                  </button>
-                )
-              )}
-            </div>
-          </div>
-        )}
+        </div>
       </div>
     </div>
   );
