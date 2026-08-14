@@ -3,6 +3,7 @@ const User = require("../models/User");
 const Household = require("../models/Household");
 const HouseholdMember = require("../models/HouseholdMember");
 const { logChange } = require("./auditController");
+const bcrypt = require("bcryptjs");
 
 exports.createHome = async (req, res) => {
   try {
@@ -310,6 +311,105 @@ exports.updateHomeSettings = async (req, res) => {
     return res
       .status(500)
       .json({ error: "Internal server error updating home settings." });
+  }
+};
+
+exports.updateRoommateCredentials = async (req, res) => {
+  try {
+    const { memberId, newEmail, newNickname, newPassword } = req.body;
+    const homeId = req.user.homeId;
+
+    if (!memberId) {
+      return res.status(400).json({ error: "memberId is required" });
+    }
+    if (!homeId) {
+      return res.status(400).json({ error: "You do not belong to a home." });
+    }
+
+    const home = await Home.findById(homeId);
+    if (!home) {
+      return res.status(404).json({ error: "Home not found." });
+    }
+
+    // Check if target member belongs to this home
+    const targetUser = await User.findOne({ _id: memberId, homeId });
+    if (!targetUser) {
+      return res.status(404).json({ error: "Roommate not found in your home." });
+    }
+
+    const changes = [];
+
+    // Update Email
+    if (newEmail && newEmail.trim() !== "") {
+      const emailLower = newEmail.trim().toLowerCase();
+      if (emailLower !== targetUser.email) {
+        const existingEmail = await User.findOne({ email: emailLower, _id: { $ne: memberId } });
+        if (existingEmail) {
+          return res.status(400).json({ error: `Email "${emailLower}" is already used by another account.` });
+        }
+        changes.push({ field: "email", oldValue: targetUser.email, newValue: emailLower, detail: `Updated ${targetUser.name}'s email to ${emailLower}` });
+        targetUser.email = emailLower;
+      }
+    }
+
+    // Update Nickname / Handle
+    if (newNickname && newNickname.trim() !== "") {
+      const nickLower = newNickname.trim().toLowerCase();
+      if (nickLower !== targetUser.nickname) {
+        const existingNick = await User.findOne({ nickname: nickLower, _id: { $ne: memberId } });
+        if (existingNick) {
+          return res.status(400).json({ error: `Handle "@${nickLower}" is already taken.` });
+        }
+        changes.push({ field: "nickname", oldValue: targetUser.nickname, newValue: nickLower, detail: `Updated ${targetUser.name}'s handle to @${nickLower}` });
+        targetUser.nickname = nickLower;
+      }
+    }
+
+    // Update Password
+    if (newPassword && newPassword.trim() !== "") {
+      if (newPassword.length < 4) {
+        return res.status(400).json({ error: "New password must be at least 4 characters." });
+      }
+      const hashedPassword = await bcrypt.hash(newPassword, 10);
+      targetUser.password = hashedPassword;
+      changes.push({ field: "password", oldValue: "********", newValue: "********", detail: `Reset ${targetUser.name}'s password` });
+    }
+
+    await targetUser.save();
+
+    if (changes.length > 0) {
+      await logChange({
+        monthId: "ALL",
+        homeId,
+        action: "UPDATE_CONFIG",
+        entity: "User",
+        entityId: targetUser._id.toString(),
+        userId: req.user._id,
+        userName: req.user.name,
+        changes,
+      });
+    }
+
+    // Return updated home details
+    const updatedHome = await Home.findById(homeId).populate({
+      path: "members",
+      select: "name nickname email role",
+    });
+
+    return res.status(200).json({
+      message: `Credentials updated for ${targetUser.name}!`,
+      user: {
+        _id: targetUser._id,
+        name: targetUser.name,
+        nickname: targetUser.nickname,
+        email: targetUser.email,
+        role: targetUser.role,
+      },
+      home: updatedHome,
+    });
+  } catch (error) {
+    console.error("Update roommate credentials error:", error);
+    return res.status(500).json({ error: "Internal server error updating roommate credentials." });
   }
 };
 

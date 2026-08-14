@@ -29,6 +29,7 @@ import {
   AlertCircle,
   Zap,
   Calculator,
+  Key,
 } from "lucide-react";
 import { driver } from "driver.js";
 import "driver.js/dist/driver.css";
@@ -326,6 +327,49 @@ export default function Dashboard() {
   const [editHomeName, setEditHomeName] = useState<string>("");
   const [editHomeCurrency, setEditHomeCurrency] = useState<string>("৳");
   const [savingHomeSettings, setSavingHomeSettings] = useState<boolean>(false);
+
+  const [editingRoommate, setEditingRoommate] = useState<any>(null);
+  const [editRoommateEmail, setEditRoommateEmail] = useState<string>("");
+  const [editRoommateNickname, setEditRoommateNickname] = useState<string>("");
+  const [editRoommatePassword, setEditRoommatePassword] = useState<string>("");
+  const [savingRoommateCredentials, setSavingRoommateCredentials] = useState<boolean>(false);
+
+  const handleOpenEditRoommate = (member: any) => {
+    setEditingRoommate(member);
+    setEditRoommateEmail(member.email || "");
+    setEditRoommateNickname(member.nickname || "");
+    setEditRoommatePassword("");
+  };
+
+  const handleSaveRoommateCredentials = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingRoommate) return;
+    setSavingRoommateCredentials(true);
+    try {
+      const res = await api.put("/home/roommate-credentials", {
+        memberId: editingRoommate._id,
+        newEmail: editRoommateEmail,
+        newNickname: editRoommateNickname,
+        newPassword: editRoommatePassword,
+      });
+      if (res.data.home) {
+        setHomeData(res.data.home);
+      }
+      setEditingRoommate(null);
+      setEditRoommateEmail("");
+      setEditRoommateNickname("");
+      setEditRoommatePassword("");
+      showAlert("Success", res.data.message || "Roommate credentials updated successfully!");
+    } catch (err: any) {
+      console.error("Error updating roommate credentials:", err);
+      showAlert(
+        "Error",
+        err.response?.data?.error || "Failed to update roommate credentials.",
+      );
+    } finally {
+      setSavingRoommateCredentials(false);
+    }
+  };
 
   const currencySymbol = homeData?.currency || "৳";
 
@@ -1864,6 +1908,17 @@ export default function Dashboard() {
                 </span>
               )}
             </button>
+            <button
+              onClick={() => {
+                setEditHomeName(homeName || "");
+                setEditHomeCurrency(homeData?.currency || "৳");
+                setIsHomeSettingsOpen(true);
+              }}
+              className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-slate-400 hover:bg-slate-850 hover:text-slate-200 transition-all duration-200 cursor-pointer"
+            >
+              <Sliders size={18} className="text-amber-400" />
+              <span>Home Settings</span>
+            </button>
           </nav>
         </div>
 
@@ -2006,18 +2061,21 @@ export default function Dashboard() {
           <div id="top-bar-controls" className="flex items-center gap-6">
             <div className="flex items-center gap-2 text-slate-300">
               <Home size={16} className="text-indigo-400" />
-              <span className="text-xs font-bold text-slate-450 uppercase tracking-widest">
+              <span className="text-xs font-bold text-slate-200 uppercase tracking-wider">
                 {homeName}
               </span>
-              {currentUser?.role === "admin" && (
-                <button
-                  onClick={() => setIsHomeSettingsOpen(true)}
-                  className="p-1 hover:bg-slate-800 rounded-md text-slate-400 hover:text-indigo-400 transition-colors cursor-pointer"
-                  title="Household Settings & Currency"
-                >
-                  <Sliders size={13} />
-                </button>
-              )}
+              <button
+                onClick={() => {
+                  setEditHomeName(homeName || "");
+                  setEditHomeCurrency(homeData?.currency || "৳");
+                  setIsHomeSettingsOpen(true);
+                }}
+                className="ml-1 bg-slate-800/90 hover:bg-indigo-600/30 hover:border-indigo-500/50 text-slate-300 hover:text-indigo-300 border border-slate-700/80 px-2 py-1 rounded-lg text-[11px] font-semibold transition-all flex items-center gap-1.5 cursor-pointer shadow-sm"
+                title="Household Settings, Roommates & Credentials"
+              >
+                <Sliders size={13} className="text-indigo-400" />
+                <span>Home Settings</span>
+              </button>
             </div>
 
             <div className="flex items-center gap-2 text-slate-300">
@@ -4809,6 +4867,48 @@ export default function Dashboard() {
                 </select>
               </div>
 
+              <div className="space-y-2 border-t border-slate-800 pt-4">
+                <label className="text-[10px] text-slate-400 uppercase font-bold tracking-wider flex items-center gap-1.5">
+                  <Key size={12} className="text-amber-400" />
+                  <span>Roommates & Account Credentials</span>
+                </label>
+                <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
+                  {homeData?.members?.map((member: any) => (
+                    <div
+                      key={member._id}
+                      className="bg-slate-950/80 border border-slate-800/80 rounded-xl p-2.5 flex items-center justify-between gap-2"
+                    >
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-xs font-bold text-white truncate">
+                            {member.name}
+                          </span>
+                          {member.role === "admin" && (
+                            <span className="bg-amber-500/20 text-amber-300 text-[9px] font-bold px-1.5 py-0.5 rounded-md border border-amber-500/30">
+                              Admin
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-[11px] text-slate-400 truncate">
+                          {member.email || "No email set"}
+                          {member.nickname && ` • @${member.nickname}`}
+                        </p>
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() => handleOpenEditRoommate(member)}
+                        className="bg-slate-800 hover:bg-amber-600/20 hover:text-amber-300 text-slate-300 text-[11px] font-semibold px-2.5 py-1.5 rounded-lg border border-slate-700 hover:border-amber-500/40 transition-all flex items-center gap-1 cursor-pointer shrink-0"
+                        title="Reset Email / Password"
+                      >
+                        <Key size={12} />
+                        <span>Reset</span>
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
               <div className="flex justify-end gap-3 border-t border-slate-800 pt-4">
                 <button
                   type="button"
@@ -4826,6 +4926,97 @@ export default function Dashboard() {
                     <Loader2 size={13} className="animate-spin" />
                   )}
                   <span>Save Settings</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Roommate Credentials Modal */}
+      {editingRoommate && (
+        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-md flex items-center justify-center z-[60] p-4">
+          <div className="bg-slate-900 border border-slate-800 w-full max-w-md rounded-2xl p-6 shadow-2xl space-y-5">
+            <div className="flex justify-between items-center border-b border-slate-800 pb-3">
+              <div>
+                <h3 className="text-lg font-bold text-white font-serif flex items-center gap-2">
+                  <Key size={18} className="text-amber-400" />
+                  <span>Update {editingRoommate.name}'s Account</span>
+                </h3>
+                <p className="text-slate-400 text-xs mt-0.5">
+                  Update login email or set a new password for this roommate without losing any history.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setEditingRoommate(null)}
+                className="text-slate-400 hover:text-white text-sm p-1 cursor-pointer"
+              >
+                ✕
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveRoommateCredentials} className="space-y-4">
+              <div className="space-y-1">
+                <label className="text-[10px] text-slate-400 uppercase font-bold tracking-wider">
+                  New Email Address
+                </label>
+                <input
+                  type="email"
+                  value={editRoommateEmail}
+                  onChange={(e) => setEditRoommateEmail(e.target.value)}
+                  placeholder="e.g. real_email@gmail.com"
+                  className="bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 w-full text-xs text-white focus:outline-none focus:border-amber-500 font-medium"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-[10px] text-slate-400 uppercase font-bold tracking-wider">
+                  Handle / Nickname
+                </label>
+                <input
+                  type="text"
+                  value={editRoommateNickname}
+                  onChange={(e) => setEditRoommateNickname(e.target.value)}
+                  placeholder="e.g. borno"
+                  className="bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 w-full text-xs text-white focus:outline-none focus:border-amber-500 font-medium"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-[10px] text-slate-400 uppercase font-bold tracking-wider">
+                  Reset Password (Leave blank to keep unchanged)
+                </label>
+                <input
+                  type="password"
+                  value={editRoommatePassword}
+                  onChange={(e) => setEditRoommatePassword(e.target.value)}
+                  placeholder="New password (min 4 characters)"
+                  className="bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 w-full text-xs text-white focus:outline-none focus:border-amber-500 font-medium"
+                />
+              </div>
+
+              <div className="bg-amber-500/10 border border-amber-500/20 rounded-xl p-3 text-[11px] text-amber-300">
+                💡 <strong>Data Safe:</strong> Updating credentials will immediately allow your roommate to log in with their new email/password while keeping 100% of their meal logs, deposits, and dues intact!
+              </div>
+
+              <div className="flex justify-end gap-3 border-t border-slate-800 pt-4">
+                <button
+                  type="button"
+                  onClick={() => setEditingRoommate(null)}
+                  className="bg-slate-800 hover:bg-slate-750 text-xs font-semibold text-slate-350 px-4 py-2 rounded-xl transition-all cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={savingRoommateCredentials}
+                  className="bg-amber-600 hover:bg-amber-700 disabled:opacity-50 text-xs font-bold text-white px-5 py-2 rounded-xl shadow-lg transition-all cursor-pointer flex items-center gap-1.5"
+                >
+                  {savingRoommateCredentials && (
+                    <Loader2 size={13} className="animate-spin" />
+                  )}
+                  <span>Save Credentials</span>
                 </button>
               </div>
             </form>

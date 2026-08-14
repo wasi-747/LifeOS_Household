@@ -44,6 +44,11 @@ router.put(
   authMiddleware,
   homeController.updateHomeSettings,
 );
+router.put(
+  "/home/roommate-credentials",
+  authMiddleware,
+  homeController.updateRoommateCredentials,
+);
 
 // Protected Device Tracking Endpoints
 router.post(
