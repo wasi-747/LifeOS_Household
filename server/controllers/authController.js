@@ -116,10 +116,15 @@ exports.login = async (req, res) => {
     }
 
     const searchKey = emailOrNickname.trim().toLowerCase();
+    const escapedSearch = searchKey.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
-    // Find user
+    // Find user by email, nickname, or full name (case-insensitive)
     const user = await User.findOne({
-      $or: [{ email: searchKey }, { nickname: searchKey }],
+      $or: [
+        { email: searchKey },
+        { nickname: searchKey },
+        { name: { $regex: new RegExp(`^${escapedSearch}$`, "i") } },
+      ],
     });
 
     if (!user) {
