@@ -54,10 +54,12 @@ app.use((err, req, res, next) => {
   });
 });
 
-// Start Express Server
-const server = app.listen(PORT, () => {
-  console.log(`Server is running on port ${PORT}`);
-});
+// Start Express Server only if not running in serverless environment
+if (require.main === module || !process.env.VERCEL) {
+  app.listen(PORT, () => {
+    console.log(`Server is running on port ${PORT}`);
+  });
+}
 
 // Connect to MongoDB in background
 mongoose.connect(MONGO_URI)
@@ -67,3 +69,5 @@ mongoose.connect(MONGO_URI)
   .catch((err) => {
     console.error('Database connection error in background:', err.message);
   });
+
+module.exports = app;
