@@ -40,8 +40,13 @@ app.use('/public', express.static(path.join(__dirname, 'public')));
 const apiRoutes = require('./routes/apiRoutes');
 app.use('/api', apiRoutes);
 
+// Health check and root endpoints
 app.get('/', (req, res) => {
-  res.json({ message: 'LifeOS-Household Server is running' });
+  res.json({ status: 'ok', message: 'LifeOS-Household Server is running' });
+});
+
+app.get('/health', (req, res) => {
+  res.status(200).json({ status: 'ok', uptime: process.uptime() });
 });
 
 // Global error handler with CORS header preservation
@@ -54,10 +59,10 @@ app.use((err, req, res, next) => {
   });
 });
 
-// Start Express Server only if not running in serverless environment
+// Start Express Server - binds to 0.0.0.0 for cloud compatibility (Render / Docker)
 if (require.main === module || !process.env.VERCEL) {
-  app.listen(PORT, () => {
-    console.log(`Server is running on port ${PORT}`);
+  app.listen(PORT, '0.0.0.0', () => {
+    console.log(`Server is running on port ${PORT} (0.0.0.0)`);
   });
 }
 
