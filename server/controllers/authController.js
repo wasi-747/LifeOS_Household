@@ -38,7 +38,7 @@ exports.signup = async (req, res) => {
         });
     }
 
-    const cleanNickname = nickname.trim().toLowerCase();
+    const cleanNickname = nickname.trim().toLowerCase().replace(/^@+/, "");
     const cleanEmail = email.trim().toLowerCase();
 
     // Check if alphanumeric nickname
@@ -115,14 +115,17 @@ exports.login = async (req, res) => {
         .json({ error: "Email/Nickname and password are required." });
     }
 
-    const searchKey = emailOrNickname.trim().toLowerCase();
-    const escapedSearch = searchKey.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const rawKey = emailOrNickname.trim().toLowerCase();
+    const cleanHandle = rawKey.replace(/^@+/, "");
+    const escapedSearch = cleanHandle.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
-    // Find user by email, nickname, or full name (case-insensitive)
+    // Find user by email, nickname (with or without @), or full name (case-insensitive)
     const user = await User.findOne({
       $or: [
-        { email: searchKey },
-        { nickname: searchKey },
+        { email: rawKey },
+        { email: cleanHandle },
+        { nickname: cleanHandle },
+        { nickname: rawKey },
         { name: { $regex: new RegExp(`^${escapedSearch}$`, "i") } },
       ],
     });
@@ -195,9 +198,15 @@ exports.forgotPassword = async (req, res) => {
       return res.status(400).json({ error: "Email or handle is required." });
     }
 
-    const searchKey = emailOrNickname.trim().toLowerCase();
+    const rawKey = emailOrNickname.trim().toLowerCase();
+    const cleanHandle = rawKey.replace(/^@+/, "");
     const user = await User.findOne({
-      $or: [{ email: searchKey }, { nickname: searchKey }],
+      $or: [
+        { email: rawKey },
+        { email: cleanHandle },
+        { nickname: cleanHandle },
+        { nickname: rawKey },
+      ],
     });
 
     if (!user) {
@@ -302,9 +311,15 @@ exports.verifyOtp = async (req, res) => {
       return res.status(400).json({ error: "Email/Handle and OTP are required." });
     }
 
-    const searchKey = emailOrNickname.trim().toLowerCase();
+    const rawKey = emailOrNickname.trim().toLowerCase();
+    const cleanHandle = rawKey.replace(/^@+/, "");
     const user = await User.findOne({
-      $or: [{ email: searchKey }, { nickname: searchKey }],
+      $or: [
+        { email: rawKey },
+        { email: cleanHandle },
+        { nickname: cleanHandle },
+        { nickname: rawKey },
+      ],
     });
 
     if (!user || !user.resetOtp || !user.resetOtpExpires) {
@@ -341,9 +356,15 @@ exports.resetPassword = async (req, res) => {
         .json({ error: "New password must be at least 4 characters." });
     }
 
-    const searchKey = emailOrNickname.trim().toLowerCase();
+    const rawKey = emailOrNickname.trim().toLowerCase();
+    const cleanHandle = rawKey.replace(/^@+/, "");
     const user = await User.findOne({
-      $or: [{ email: searchKey }, { nickname: searchKey }],
+      $or: [
+        { email: rawKey },
+        { email: cleanHandle },
+        { nickname: cleanHandle },
+        { nickname: rawKey },
+      ],
     });
 
     if (!user || !user.resetOtp || !user.resetOtpExpires) {

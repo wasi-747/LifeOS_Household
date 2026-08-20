@@ -478,3 +478,233 @@ exports.saveMonthlyBill = async (req, res) => {
     return res.status(500).json({ error: 'Internal server error saving monthly bills' });
   }
 };
+
+exports.recordUtilityPayment = async (req, res) => {
+  try {
+    const { monthId, category, paidBy, amount, date, note, paidFrom } = req.body;
+    const homeId = req.user.homeId;
+
+    if (!monthId || !category || amount === undefined) {
+      return res.status(400).json({ error: 'monthId, category, and amount are required' });
+    }
+    if (!homeId) {
+      return res.status(400).json({ error: 'User does not belong to a home.' });
+    }
+
+    const numAmount = parseFloat(amount) || 0;
+    if (numAmount <= 0) {
+      return res.status(400).json({ error: 'Amount must be greater than 0.' });
+    }
+
+    const effectivePayerId = paidBy || req.user._id;
+    const payer = await User.findOne({ _id: effectivePayerId, homeId });
+    if (!payer && effectivePayerId) {
+      return res.status(404).json({ error: 'Payer user not found in this home.' });
+    }
+
+    const isGeneralDeposit = ['general_deposit', 'general', 'deposit', 'pool', 'share'].includes(category.toLowerCase().trim());
+    // If paidFrom is 'FUND' (and not a general deposit from personal pocket), don't credit individual utilityPayment
+    const isFromFund = paidFrom === 'FUND' && !isGeneralDeposit;
+
+    // 1. Create Transaction record of type UTILITY
+    const transaction = new Transaction({
+      date: date ? new Date(date) : new Date(),
+      monthId,
+      homeId,
+      type: 'UTILITY',
+      category: category.toLowerCase().trim(),
+      amount: numAmount,
+      paidBy: effectivePayerId,
+      splitType: 'EQUAL',
+      note: note ? note.trim() : (isFromFund ? 'Paid from House Utility Fund' : '')
+    });
+    await transaction.save();
+
+    let monthlyBill = await MonthlyBill.findOne({ monthId, homeId });
+    if (!monthlyBill) {
+      monthlyBill = new MonthlyBill({ monthId, homeId, adjustments: [] });
+    }
+
+    let newPayment = 0;
+    let oldPayment = 0;
+
+    if (!isFromFund && effectivePayerId) {
+      // 2. Credit the user in MonthlyBill adjustments only if paid from personal pocket
+      let userAdj = monthlyBill.adjustments.find(a => a.user && a.user.toString() === effectivePayerId.toString());
+      oldPayment = userAdj ? (parseFloat(userAdj.utilityPayment) || 0) : 0;
+      newPayment = Number((oldPayment + numAmount).toFixed(2));
+
+      if (userAdj) {
+        userAdj.utilityPayment = newPayment;
+      } else {
+        monthlyBill.adjustments.push({
+          user: effectivePayerId,
+          prevUtilityDue: 0,
+          prevMealDue: 0,
+          utilityPayment: newPayment,
+          rentPayment: 0,
+          note: ''
+        });
+      }
+
+      await monthlyBill.save();
+    }
+
+    // 3. Log audit history
+    const actionLabel = isGeneralDeposit 
+      ? 'general utility deposit / share' 
+      : (isFromFund ? `${category} bill (from House Utility Fund)` : `${category} bill (from personal pocket)`);
+
+    await logChange({
+      monthId,
+      homeId,
+      action: 'UTILITY_PAYMENT',
+      entity: 'Transaction',
+      entityId: transaction._id.toString(),
+      userId: req.user._id,
+      userName: req.user.name,
+      changes: [{
+        field: `utilities.${category}`,
+        oldValue: oldPayment,
+        newValue: newPayment,
+        detail: `${payer ? payer.name : req.user.name} recorded ৳${numAmount.toFixed(2)} for ${actionLabel}${note ? ` (${note})` : ''}`
+      }]
+    });
+
+    return res.status(201).json({
+      message: isGeneralDeposit
+        ? `General utility deposit of ৳${numAmount.toFixed(2)} recorded for ${payer ? payer.name : 'member'}!`
+        : `Utility payment of ৳${numAmount.toFixed(2)} for ${category} recorded successfully (${isFromFund ? 'Paid from Utility Fund' : 'Paid from Personal Pocket'})!`,
+      data: transaction,
+      utilityPayment: newPayment
+    });
+  } catch (error) {
+    console.error('Error recording utility payment:', error);
+    return res.status(500).json({ error: 'Internal server error recording utility payment' });
+  }
+};
+
+exports.deleteUtilityPayment = async (req, res) => {
+  try {
+    const { transactionId } = req.params;
+    const homeId = req.user.homeId;
+
+    if (!transactionId) {
+      return res.status(400).json({ error: 'transactionId is required' });
+    }
+
+    const transaction = await Transaction.findOne({ _id: transactionId, homeId, type: 'UTILITY' });
+    if (!transaction) {
+      return res.status(404).json({ error: 'Utility payment transaction not found.' });
+    }
+
+    const paidBy = transaction.paidBy;
+    const amount = transaction.amount || 0;
+    const monthId = transaction.monthId;
+    const category = transaction.category;
+
+    // Deduct from MonthlyBill adjustment if exists
+    const monthlyBill = await MonthlyBill.findOne({ monthId, homeId });
+    if (monthlyBill && paidBy) {
+      const userAdj = monthlyBill.adjustments.find(a => a.user && a.user.toString() === paidBy.toString());
+      if (userAdj) {
+        userAdj.utilityPayment = Math.max(0, Number(((userAdj.utilityPayment || 0) - amount).toFixed(2)));
+        await monthlyBill.save();
+      }
+    }
+
+    await Transaction.deleteOne({ _id: transactionId });
+
+    await logChange({
+      monthId,
+      homeId,
+      action: 'DELETE_UTILITY_PAYMENT',
+      entity: 'Transaction',
+      entityId: transactionId,
+      userId: req.user._id,
+      userName: req.user.name,
+      changes: [{
+        field: `utilities.${category}`,
+        oldValue: amount,
+        newValue: 0,
+        detail: `Deleted utility payment of ৳${amount} for ${category}`
+      }]
+    });
+
+    return res.status(200).json({ message: 'Utility payment deleted successfully' });
+  } catch (error) {
+    console.error('Error deleting utility payment:', error);
+    return res.status(500).json({ error: 'Internal server error deleting utility payment' });
+  }
+};
+
+exports.recordRentPayment = async (req, res) => {
+  try {
+    const { monthId, userId, amount, isAppend, note } = req.body;
+    const homeId = req.user.homeId;
+
+    if (!monthId || !userId || amount === undefined) {
+      return res.status(400).json({ error: 'monthId, userId, and amount are required' });
+    }
+    if (!homeId) {
+      return res.status(400).json({ error: 'User does not belong to a home.' });
+    }
+
+    const numAmount = parseFloat(amount) || 0;
+    const targetUser = await User.findOne({ _id: userId, homeId });
+    if (!targetUser) {
+      return res.status(404).json({ error: 'User not found in this home.' });
+    }
+
+    let monthlyBill = await MonthlyBill.findOne({ monthId, homeId });
+    if (!monthlyBill) {
+      monthlyBill = new MonthlyBill({ monthId, homeId, adjustments: [] });
+    }
+
+    let userAdj = monthlyBill.adjustments.find(a => a.user && a.user.toString() === userId.toString());
+    const oldPayment = userAdj ? (parseFloat(userAdj.rentPayment) || 0) : 0;
+    const shouldAppend = isAppend === true || String(isAppend) === 'true';
+    const newPayment = shouldAppend ? Number((oldPayment + numAmount).toFixed(2)) : Number(numAmount.toFixed(2));
+
+    if (userAdj) {
+      userAdj.rentPayment = newPayment;
+      if (note) userAdj.note = note;
+    } else {
+      monthlyBill.adjustments.push({
+        user: userId,
+        prevUtilityDue: 0,
+        prevMealDue: 0,
+        utilityPayment: 0,
+        rentPayment: newPayment,
+        note: note || ''
+      });
+    }
+
+    await monthlyBill.save();
+
+    await logChange({
+      monthId,
+      homeId,
+      action: 'RENT_PAYMENT',
+      entity: 'MonthlyBill',
+      entityId: monthlyBill._id.toString(),
+      userId: req.user._id,
+      userName: req.user.name,
+      changes: [{
+        field: `adjustments.${userId}.rentPayment`,
+        oldValue: oldPayment,
+        newValue: newPayment,
+        detail: `Updated rent payment for ${targetUser.name}: ৳${newPayment.toFixed(2)}${note ? ` (${note})` : ''}`
+      }]
+    });
+
+    return res.status(200).json({
+      message: `Rent payment for ${targetUser.name} updated to ৳${newPayment.toFixed(2)}`,
+      rentPayment: newPayment
+    });
+  } catch (error) {
+    console.error('Error recording rent payment:', error);
+    return res.status(500).json({ error: 'Internal server error recording rent payment' });
+  }
+};
+

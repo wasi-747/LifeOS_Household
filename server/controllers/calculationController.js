@@ -347,6 +347,134 @@ exports.getSummary = async (req, res) => {
       };
     });
 
+    // Calculate Utility and Rent Summaries with Auto DONE status
+    const defaultCategoryLabels = {
+      wifi: "WiFi Internet",
+      electricity: "Electricity",
+      gas: "Gas / Fuel",
+      garbage: "Garbage Collection",
+      bashaUti: "Building Maintenance",
+      pani: "Water Supply (Pani)",
+      bua: "Cook / Maid (Bua)",
+      extra: "Miscellaneous Extra"
+    };
+
+    const utilityTxs = transactions.filter(tx => tx.type === 'UTILITY');
+    const utilKeys = monthlyBill.utilities instanceof Map 
+      ? Array.from(monthlyBill.utilities.keys()) 
+      : Object.keys(monthlyBill.utilities || {});
+
+    const categoryDetails = {};
+    let totalUtilityPaidToProviders = 0;
+
+    utilKeys.forEach(catKey => {
+      const targetAmount = monthlyBill.utilities instanceof Map 
+        ? (parseFloat(monthlyBill.utilities.get(catKey)) || 0)
+        : (parseFloat(monthlyBill.utilities[catKey]) || 0);
+
+      const catTxs = utilityTxs.filter(tx => tx.category && tx.category.toLowerCase().trim() === catKey.toLowerCase().trim());
+      const paidAmount = catTxs.reduce((sum, tx) => sum + (parseFloat(tx.amount) || 0), 0);
+      totalUtilityPaidToProviders += paidAmount;
+
+      const remaining = Math.max(0, targetAmount - paidAmount);
+      const isDone = targetAmount > 0 && paidAmount >= targetAmount;
+      const percent = targetAmount > 0 ? Math.min(100, Math.round((paidAmount / targetAmount) * 100)) : (paidAmount > 0 ? 100 : 0);
+
+      const note = monthlyBill.utilityNotes instanceof Map 
+        ? (monthlyBill.utilityNotes.get(catKey) || '') 
+        : (monthlyBill.utilityNotes?.[catKey] || '');
+
+      const label = defaultCategoryLabels[catKey] || (catKey.charAt(0).toUpperCase() + catKey.slice(1));
+
+      const payments = catTxs.map(tx => {
+        const pUser = users.find(u => u._id.toString() === (tx.paidBy ? tx.paidBy.toString() : ''));
+        return {
+          _id: tx._id,
+          amount: tx.amount,
+          paidBy: pUser ? { _id: pUser._id, name: pUser.name } : null,
+          date: tx.date,
+          note: tx.note || ''
+        };
+      });
+
+      categoryDetails[catKey] = {
+        key: catKey,
+        label,
+        targetAmount: Number(targetAmount.toFixed(2)),
+        paidAmount: Number(paidAmount.toFixed(2)),
+        remaining: Number(remaining.toFixed(2)),
+        percent,
+        isDone,
+        note,
+        payments
+      };
+    });
+
+    const generalTxs = utilityTxs.filter(tx => ['general_deposit', 'general', 'deposit', 'pool', 'share'].includes((tx.category || '').toLowerCase().trim()));
+    const totalGeneralDeposits = generalTxs.reduce((sum, tx) => sum + (parseFloat(tx.amount) || 0), 0);
+    const generalPayments = generalTxs.map(tx => {
+      const pUser = users.find(u => u._id.toString() === (tx.paidBy ? tx.paidBy.toString() : ''));
+      return {
+        _id: tx._id,
+        amount: tx.amount,
+        paidBy: pUser ? { _id: pUser._id, name: pUser.name } : null,
+        date: tx.date,
+        note: tx.note || ''
+      };
+    });
+
+    const totalUtilityCollectedFromRoommates = userStandings.reduce((sum, u) => sum + (u.utilityPayment || 0), 0);
+    const totalUtilityRemaining = Math.max(0, totalUtilities - totalUtilityPaidToProviders);
+    const utilityFundInHand = Math.max(0, totalUtilityCollectedFromRoommates - totalUtilityPaidToProviders);
+    const isUtilityDone = totalUtilities > 0 && totalUtilityPaidToProviders >= totalUtilities;
+
+    const utilitySummary = {
+      totalBill: Number(totalUtilities.toFixed(2)),
+      totalCollected: Number(totalUtilityCollectedFromRoommates.toFixed(2)),
+      totalPaid: Number(totalUtilityPaidToProviders.toFixed(2)),
+      totalRemaining: Number(totalUtilityRemaining.toFixed(2)),
+      fundInHand: Number(utilityFundInHand.toFixed(2)),
+      totalGeneralDeposits: Number(totalGeneralDeposits.toFixed(2)),
+      generalPayments,
+      isDone: isUtilityDone,
+      categories: categoryDetails
+    };
+
+    // Rent Summary
+    let totalHouseRent = 0;
+    let totalHouseRentPaid = 0;
+    const rentBreakdown = users.map(u => {
+      const uid = u._id.toString();
+      const rentPortion = monthlyBill.rent instanceof Map ? (monthlyBill.rent.get(uid) || 0) : (monthlyBill.rent?.[uid] || 0);
+      const adj = monthlyBill.adjustments.find(a => a.user && a.user.toString() === uid);
+      const rentPayment = adj ? (adj.rentPayment || 0) : 0;
+      const rentDue = Math.max(0, rentPortion - rentPayment);
+      const isDone = rentPortion > 0 && rentPayment >= rentPortion;
+
+      totalHouseRent += rentPortion;
+      totalHouseRentPaid += rentPayment;
+
+      return {
+        userId: u._id,
+        name: u.name,
+        rentPortion: Number(rentPortion.toFixed(2)),
+        rentPayment: Number(rentPayment.toFixed(2)),
+        rentDue: Number(rentDue.toFixed(2)),
+        isDone
+      };
+    });
+
+    const totalRentRemaining = Math.max(0, totalHouseRent - totalHouseRentPaid);
+    const isRentDone = totalHouseRent > 0 && totalHouseRentPaid >= totalHouseRent;
+
+    const rentSummary = {
+      totalRent: Number(totalHouseRent.toFixed(2)),
+      totalPaid: Number(totalHouseRentPaid.toFixed(2)),
+      totalRemaining: Number(totalRentRemaining.toFixed(2)),
+      isDone: isRentDone,
+      roommateBreakdown: rentBreakdown
+    };
+
     // Calculate device usage metrics
     const deviceMap = {};
     if (dateRange && telemetries.length > 0) {
@@ -383,7 +511,9 @@ exports.getSummary = async (req, res) => {
       mealRate: Number(mealRate.toFixed(4)),
       monthlyBill,
       deviceUsages,
-      userStandings
+      userStandings,
+      utilitySummary,
+      rentSummary
     });
   } catch (error) {
     console.error('Error calculating month summary:', error);

@@ -100,47 +100,47 @@ export default function HouseChat({ currentUser }: HouseChatProps) {
   };
 
   return (
-    <div id="house-chat-container" className="flex flex-col h-[calc(100vh-140px)] bg-[#1C1512] border border-[#382923] rounded-3xl overflow-hidden shadow-2xl animate-fade-in">
+    <div id="house-chat-container" className="flex flex-col h-[calc(100vh-140px)] bg-white border border-slate-200 rounded-3xl overflow-hidden shadow-xl shadow-slate-200/50 animate-fade-in">
       {/* Top Header */}
-      <div className="px-6 py-4 bg-[#251B17] border-b border-[#382923] flex items-center justify-between">
+      <div className="px-6 py-4 bg-white border-b border-slate-200 flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-2xl bg-[#E38D73]/15 border border-[#E38D73]/30 text-[#E38D73] flex items-center justify-center shadow-sm">
+          <div className="w-10 h-10 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-600 flex items-center justify-center shadow-xs">
             <MessageSquare size={20} />
           </div>
           <div>
-            <h3 className="font-serif font-black text-base text-[#FAF6F0] flex items-center gap-2">
+            <h3 className="font-serif font-black text-base text-slate-900 flex items-center gap-2">
               House Chat
-              <span className="text-[10px] font-sans font-bold px-2 py-0.5 rounded-full bg-[#E38D73]/10 text-[#E38D73] border border-[#E38D73]/20">
+              <span className="text-[10px] font-sans font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
                 LIVE
               </span>
             </h3>
-            <p className="text-xs text-[#A69788]">
+            <p className="text-xs text-slate-500">
               Instant private messaging for roomies & household members
             </p>
           </div>
         </div>
-        <div className="flex items-center gap-2 text-xs text-[#A69788]">
-          <span className="w-2 h-2 rounded-full bg-[#A0B095] animate-pulse" />
+        <div className="flex items-center gap-2 text-xs text-slate-500">
+          <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
           <span>Real-time sync active</span>
         </div>
       </div>
 
       {/* Messages Feed */}
-      <div className="flex-1 overflow-y-auto p-6 space-y-4 bg-[#1C1512]">
+      <div className="flex-1 overflow-y-auto p-6 space-y-4 bg-slate-50/40">
         {loading ? (
-          <div className="flex flex-col items-center justify-center h-full gap-3 text-[#A69788]">
-            <Loader2 className="h-8 w-8 animate-spin text-[#E38D73]" />
+          <div className="flex flex-col items-center justify-center h-full gap-3 text-slate-400">
+            <Loader2 className="h-8 w-8 animate-spin text-emerald-600" />
             <p className="text-xs font-semibold">Opening house channel...</p>
           </div>
         ) : messages.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-full gap-3 text-center p-8 bg-[#251B17]/40 border border-[#382923]/60 rounded-3xl max-w-md mx-auto my-auto">
-            <div className="w-14 h-14 rounded-full bg-[#E38D73]/10 border border-[#E38D73]/20 flex items-center justify-center text-2xl">
+          <div className="flex flex-col items-center justify-center h-full gap-3 text-center p-8 bg-white border border-slate-200 rounded-3xl max-w-md mx-auto my-auto shadow-xs">
+            <div className="w-14 h-14 rounded-full bg-emerald-50 border border-emerald-200 flex items-center justify-center text-2xl">
               🏠
             </div>
-            <h4 className="font-serif font-bold text-lg text-[#FAF6F0]">
+            <h4 className="font-serif font-bold text-lg text-slate-900">
               No messages in House Chat yet!
             </h4>
-            <p className="text-xs text-[#A69788] leading-relaxed">
+            <p className="text-xs text-slate-500 leading-relaxed">
               Say hello to your household members! Share grocery updates, dinner plans, or house notes right here.
             </p>
           </div>
@@ -155,10 +155,10 @@ export default function HouseChat({ currentUser }: HouseChatProps) {
               >
                 {/* Avatar */}
                 <div
-                  className={`w-8 h-8 rounded-xl flex items-center justify-center text-xs font-bold shrink-0 shadow-sm ${
+                  className={`w-8 h-8 rounded-xl flex items-center justify-center text-xs font-bold shrink-0 shadow-xs ${
                     isMe
-                      ? "bg-[#E38D73] text-[#1C1512]"
-                      : "bg-[#382923] text-[#FAF6F0] border border-[#4A3728]"
+                      ? "bg-emerald-600 text-white"
+                      : "bg-slate-200 text-slate-800 border border-slate-300"
                   }`}
                   title={msg.senderName}
                 >
@@ -170,10 +170,10 @@ export default function HouseChat({ currentUser }: HouseChatProps) {
                   className={`max-w-[70%] space-y-1 ${isMe ? "items-end text-right" : "items-start text-left"}`}
                 >
                   {/* Sender Name & Timestamp */}
-                  <div className={`flex items-center gap-2 text-[10px] text-[#A69788] ${isMe ? "justify-end" : "justify-start"}`}>
-                    <span className="font-bold text-[#FAF6F0]">{msg.senderName}</span>
+                  <div className={`flex items-center gap-2 text-[10px] text-slate-500 ${isMe ? "justify-end" : "justify-start"}`}>
+                    <span className="font-bold text-slate-800">{msg.senderName}</span>
                     {msg.senderNickname && (
-                      <span className="font-mono text-[#78695C]">@{msg.senderNickname}</span>
+                      <span className="font-mono text-slate-400">@{msg.senderNickname}</span>
                     )}
                     <span>•</span>
                     <span>{formatTime(msg.createdAt)}</span>
@@ -181,10 +181,10 @@ export default function HouseChat({ currentUser }: HouseChatProps) {
 
                   {/* Bubble */}
                   <div
-                    className={`relative p-3.5 rounded-2xl text-xs leading-relaxed break-words shadow-md transition-all ${
+                    className={`relative p-3.5 rounded-2xl text-xs leading-relaxed break-words shadow-xs transition-all ${
                       isMe
-                        ? "bg-[#E38D73] text-[#1C1512] font-medium rounded-tr-none"
-                        : "bg-[#251B17] border border-[#382923] text-[#FAF6F0] rounded-tl-none"
+                        ? "bg-emerald-600 text-white font-medium rounded-tr-none shadow-emerald-600/20"
+                        : "bg-white border border-slate-200 text-slate-900 rounded-tl-none"
                     }`}
                   >
                     <p className="whitespace-pre-wrap">{msg.text}</p>
@@ -194,7 +194,7 @@ export default function HouseChat({ currentUser }: HouseChatProps) {
                       <button
                         onClick={() => handleDelete(msg._id)}
                         className={`absolute top-2 ${
-                          isMe ? "-left-7 text-[#78695C] hover:text-rose-450" : "-right-7 text-[#78695C] hover:text-rose-450"
+                          isMe ? "-left-7 text-slate-400 hover:text-rose-500" : "-right-7 text-slate-400 hover:text-rose-500"
                         } opacity-0 group-hover:opacity-100 transition-opacity p-1 bg-transparent border-0 cursor-pointer`}
                         title="Delete message"
                       >
@@ -211,22 +211,22 @@ export default function HouseChat({ currentUser }: HouseChatProps) {
       </div>
 
       {/* Input Bar */}
-      <form onSubmit={handleSend} className="p-4 bg-[#251B17] border-t border-[#382923]">
-        <div className="flex items-center gap-3 bg-[#1C1512] border border-[#382923] rounded-2xl px-4 py-2 focus-within:border-[#E38D73] focus-within:ring-2 focus-within:ring-[#E38D73]/15 transition-all">
+      <form onSubmit={handleSend} className="p-4 bg-white border-t border-slate-200">
+        <div className="flex items-center gap-3 bg-slate-50 border border-slate-200 rounded-2xl px-4 py-2 focus-within:border-emerald-500 focus-within:ring-2 focus-within:ring-emerald-500/15 transition-all">
           <input
             type="text"
             placeholder="Type a message to the house..."
             value={newMessage}
             onChange={(e) => setNewMessage(e.target.value)}
-            className="flex-1 bg-transparent border-none text-xs text-[#FAF6F0] placeholder-[#78695C] focus:outline-none py-1.5 font-medium"
+            className="flex-1 bg-transparent border-none text-xs text-slate-900 placeholder-slate-400 focus:outline-none py-1.5 font-medium"
           />
           <button
             type="submit"
             disabled={!newMessage.trim() || sending}
-            className="bg-[#E38D73] hover:bg-[#F2A38A] disabled:opacity-40 text-[#1C1512] font-bold text-xs p-2.5 rounded-xl shadow-md transition-all cursor-pointer flex items-center justify-center shrink-0"
+            className="bg-emerald-600 hover:bg-emerald-500 disabled:opacity-40 text-white font-bold text-xs p-2.5 rounded-xl shadow-md shadow-emerald-600/20 transition-all cursor-pointer flex items-center justify-center shrink-0 border-0"
           >
             {sending ? (
-              <Loader2 size={16} className="animate-spin text-[#1C1512]" />
+              <Loader2 size={16} className="animate-spin text-white" />
             ) : (
               <Send size={16} />
             )}

@@ -167,6 +167,21 @@ router.post(
   authMiddleware,
   monthlyBillController.saveMonthlyBill,
 );
+router.post(
+  "/monthly-bill/utility-payment",
+  authMiddleware,
+  monthlyBillController.recordUtilityPayment,
+);
+router.delete(
+  "/monthly-bill/utility-payment/:transactionId",
+  authMiddleware,
+  monthlyBillController.deleteUtilityPayment,
+);
+router.post(
+  "/monthly-bill/rent-payment",
+  authMiddleware,
+  monthlyBillController.recordRentPayment,
+);
 
 // Protected Bazar Wallet Endpoints
 router.get(
