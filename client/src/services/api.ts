@@ -1,11 +1,26 @@
 import axios from 'axios';
 
 const getBaseURL = () => {
-  const url = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
-  if (url && !url.endsWith('/api') && !url.includes('/api/')) {
-    return url.endsWith('/') ? `${url}api` : `${url}/api`;
+  const envUrl = import.meta.env.VITE_API_URL;
+  if (envUrl) {
+    if (!envUrl.endsWith('/api') && !envUrl.includes('/api/')) {
+      return envUrl.endsWith('/') ? `${envUrl}api` : `${envUrl}/api`;
+    }
+    return envUrl;
   }
-  return url;
+
+  // When deployed in production or accessed on non-localhost (e.g. Vercel)
+  if (
+    import.meta.env.PROD ||
+    (typeof window !== 'undefined' &&
+      window.location.hostname !== 'localhost' &&
+      window.location.hostname !== '127.0.0.1')
+  ) {
+    return 'https://lifeos-household.onrender.com/api';
+  }
+
+  // Local development default
+  return 'http://localhost:5000/api';
 };
 
 const api = axios.create({

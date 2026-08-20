@@ -66,7 +66,7 @@ export default function Auth({ onAuthSuccess }: AuthProps) {
     } catch (err: any) {
       console.error('Auth error:', err);
       if (!err.response) {
-        setError('Cannot connect to server. Please ensure the backend server is running on port 5000.');
+        setError('Cannot connect to server. Please check your connection or wait ~30s if the backend is waking up.');
       } else {
         setError(err.response?.data?.error || 'Unable to open the front door. Please verify your details.');
       }
@@ -88,7 +88,7 @@ export default function Auth({ onAuthSuccess }: AuthProps) {
     } catch (err: any) {
       console.error('Send OTP error:', err);
       if (!err.response) {
-        setResetError('Cannot connect to server. Please ensure the backend server is running.');
+        setResetError('Cannot connect to server. Please try again in a few moments.');
       } else {
         setResetError(err.response?.data?.error || 'Failed to send reset email. Please try again.');
       }
@@ -110,7 +110,7 @@ export default function Auth({ onAuthSuccess }: AuthProps) {
     } catch (err: any) {
       console.error('Verify OTP error:', err);
       if (!err.response) {
-        setResetError('Cannot connect to server. Please ensure the backend server is running.');
+        setResetError('Cannot connect to server. Please try again in a few moments.');
       } else {
         setResetError(err.response?.data?.error || 'Invalid or expired OTP code.');
       }
@@ -156,7 +156,7 @@ export default function Auth({ onAuthSuccess }: AuthProps) {
     } catch (err: any) {
       console.error('Reset password error:', err);
       if (!err.response) {
-        setResetError('Cannot connect to server. Please ensure the backend server is running.');
+        setResetError('Cannot connect to server. Please try again in a few moments.');
       } else {
         setResetError(err.response?.data?.error || 'Failed to reset password. Please try again.');
       }
