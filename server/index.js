@@ -9,9 +9,31 @@ const MONGO_URI = process.env.MONGO_URI || 'mongodb://127.0.0.1:27017/lifeos_hou
 
 const path = require('path');
 
-// Middleware
-app.use(cors());
-app.use(express.json());
+// Robust CORS configuration for local, Vercel, and Render deployments
+const corsOptions = {
+  origin: (origin, callback) => {
+    // Allow requests with no origin or any origin
+    callback(null, true);
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH', 'HEAD'],
+  allowedHeaders: [
+    'Content-Type',
+    'Authorization',
+    'X-Requested-With',
+    'Accept',
+    'Origin',
+    'Access-Control-Request-Method',
+    'Access-Control-Request-Headers',
+  ],
+  optionsSuccessStatus: 200,
+};
+
+app.use(cors(corsOptions));
+app.options('*', cors(corsOptions));
+
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.use('/public', express.static(path.join(__dirname, 'public')));
 
 // Routes
@@ -20,6 +42,16 @@ app.use('/api', apiRoutes);
 
 app.get('/', (req, res) => {
   res.json({ message: 'LifeOS-Household Server is running' });
+});
+
+// Global error handler with CORS header preservation
+app.use((err, req, res, next) => {
+  console.error('Unhandled server error:', err);
+  res.header('Access-Control-Allow-Origin', req.headers.origin || '*');
+  res.header('Access-Control-Allow-Credentials', 'true');
+  res.status(err.status || 500).json({
+    error: err.message || 'Internal Server Error',
+  });
 });
 
 // Start Express Server
