@@ -1,0 +1,9 @@
+{
+  "name": "lifeos-household",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "start": "cd server && npm start",
+    "build": "cd server && npm install"
+  }
+}
